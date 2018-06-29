@@ -2,13 +2,14 @@ import React, {
   Component
 } from 'react';
 import './App.css';
-import data from './data_2018.json';
-import states from './states.json';
-import stateCenters from './state_centers.json';
-
-// import ReactDOM from 'react-dom'
+import data from './csv/data_2018.json';
+import states from './csv/states.json';
+import stateCenters from './csv/state_centers.json';
 import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
+import Slider, { Range } from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
+var R = 160, G = 0, B = 255;
 function parseYearMonth(yearMonth) {
   var year = (yearMonth + '').substring(0, 4);
   var monthNum = (yearMonth + '').substring(5);
@@ -41,17 +42,24 @@ function getMoviesFromApiAsync() {
     });
 }
 
+function getTintValue(quartile, numQuartiles, originalValue) {
+  var newTint = Math.round(originalValue + (255 - originalValue) * (quartile / numQuartiles));
+  if (newTint == 256) newTint--;
+  //console.log(newTint);
+  return newTint.toString(16);
+}
+
 //determines color/tint based on quartile of given state
 function getFillColor(state, quartiles, quartile_range) {
 
-  var num = quartiles[state.toUpperCase()];
-  var tint = (256 * (quartile_range - num) / quartile_range);
-  if (tint == 256) tint--;
-  tint = tint.toString(16);
-  if (tint.length < 2) tint = "0" + tint;
+  var quartile = quartiles[state.toUpperCase()];
+  // var tint = (256 * (quartile_range - num) / quartile_range);
+  // if (tint == 256) tint--;
+  // tint = tint.toString(16);
+  // if (tint.length < 2) tint = "0" + tint;
 
-  var blues = ["#9999ea", "#6e6ed4", "#3f3fd8", "#0000FF"]
-  return "#" + tint + tint + "FF";
+  //var blues = ["#9999ea", "#6e6ed4", "#3f3fd8", "#0000FF"]
+  return "#" + getTintValue(quartile, quartile_range, R) + getTintValue(quartile, quartile_range, G) + getTintValue(quartile, quartile_range, B);
 }
 
 class MapContainer extends Component {
@@ -78,10 +86,20 @@ class MapContainer extends Component {
     return state + " had " + numStorms + " storms in 2018";
   }
 
+  handleSliderChange() {
+
+  }
+
   render() {
     const style = {
       width: '50%',
       height: '50%'
+    }
+
+    const range = {
+      width: '30%',
+      height: '10%',
+      float: "right",
     }
 
     var state_dist = {};
@@ -159,32 +177,185 @@ class MapContainer extends Component {
 
       </Polygon>
     );
+    var squareSize = {
+      width: '30px',
+      height: '30px',
+      float: "left",
+      marginRight: "40px"
+    };
+
+    var slider = {
+      marginLeft: "40px",
+      marginTop: "7px",
+      width: '90%'
+    };
+
 
     return (
-      <div ref="map">
-        <Map
-          style={style}
-          google={this.props.google}
-          initialCenter={{
-            lat: 32.9582895,
-            lng: -117.1600157
-          }}
-          clickableIcons={true}
-          zoom={4}
-        >
+      <div>
+        <div ref="map">
+          <Map
+            style={style}
+            google={this.props.google}
+            initialCenter={{
+              lat: 32.9582895,
+              lng: -117.1600157
+            }}
+            clickableIcons={true}
+            zoom={4}
+          >
 
-          <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
-            <div>
-              {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)}
-            </div>
-          </InfoWindow>
+            <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
+              <div>
+                {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)}
+              </div>
+            </InfoWindow>
 
-          {state_borders}
-        </Map>
+            {state_borders}
+          </Map>
+
+        </div>
+        <div style={range}>
+          <CustomizedSlider />
+        </div>
+        
       </div>
     );
 
   }
+}
+
+class CustomizedSlider extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: 255,
+      R: 0,
+      G: 0,
+      B: 255
+    };
+
+  }
+  onSliderChange = (value) => {
+    this.setState({
+      value: value,
+      B: value
+    });
+    //this.setState({ B: value });
+  }
+
+  onAfterChange = (value) => {
+    // console.log(value); //eslint-disable-line
+
+  }
+
+  ensureLengthTwo(num) {
+    var str = num.toString(16) + "";
+    if (str.length < 2) str = "0" + str;
+    if (str.length > 2) str = "FF"
+    return str;
+  }
+
+  render() {
+    var squareSize = {
+      width: '30px',
+      height: '30px',
+      float: "left",
+      marginRight: "40px"
+    };
+
+    var slider = {
+      marginLeft: "40px",
+      marginTop: "9px",
+      width: '90%'
+    };
+
+
+    var backgroundColor = "#"
+      + this.ensureLengthTwo(this.state.R)
+      + this.ensureLengthTwo(this.state.G)
+      + this.ensureLengthTwo(this.state.B);
+
+    var style = {
+      fill: backgroundColor,
+      width: '100%',
+      height: '100%',
+    };
+
+
+    //var square = <ColorSquare R={this.state.R} G={this.state.G} B={this.state.B} />
+
+
+    return (
+
+      <div>
+        <div style={squareSize}>
+          <svg style={{ fill: "#" + this.ensureLengthTwo(this.state.R) + this.ensureLengthTwo(this.state.G) + this.ensureLengthTwo(this.state.B), width: '100%', height: '100%' }}>
+            <rect style={style} />
+          </svg>
+        </div>
+        <div style={slider}>
+          <Slider value={this.state.value}
+            onChange={this.onSliderChange} onAfterChange={this.onAfterChange}
+            min={0}
+            max={255}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+
+class ColorSquare extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      R: props.R,
+      G: props.G,
+      B: props.B
+    };
+    //this.updateRGB = this.updateRGB.bind(this);
+  }
+
+  // updateRGB(newR, newG, newB) {
+  //   this.setState({ R: newR });
+  //   this.setState({ G: newG });
+  //   this.setState({ B: newB });
+  // }
+
+  ensureLengthTwo(num) {
+    var str = num.toString(16) + "";
+    if (str.length < 2) str = "0" + str;
+    if (str.length > 2) str = "FF"
+    return str;
+  }
+
+  render() {
+
+
+
+    var backgroundColor = "#"
+      + this.ensureLengthTwo(this.state.R)
+      + this.ensureLengthTwo(this.state.G)
+      + this.ensureLengthTwo(this.state.B);
+    console.log(backgroundColor)
+    var style = {
+      fill: backgroundColor,
+      width: '100%',
+      height: '100%',
+    };
+
+    return (
+      <svg style={style}>
+        <rect style={style} />
+      </svg>
+    );
+    // <div
+    //   style={style}
+    // />
+  }
+
 }
 
 
