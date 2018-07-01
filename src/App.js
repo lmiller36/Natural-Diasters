@@ -2,12 +2,15 @@ import React, {
   Component
 } from 'react';
 import './App.css';
+import data2 from './csv/data_2017.json';
 import data from './csv/data_2018.json';
+import counties from './csv/counties.json';
 import states from './csv/states.json';
 import stateCenters from './csv/state_centers.json';
 import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
 import Slider, { Range } from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import { ifError } from 'assert';
 
 var R = 160, G = 0, B = 255;
 function parseYearMonth(yearMonth) {
@@ -29,6 +32,9 @@ function convertToLatLngArr(arr) {
   return points;
 
 }
+
+
+
 
 function getMoviesFromApiAsync() {
   return fetch('http://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_20m.json')
@@ -86,8 +92,8 @@ class MapContainer extends Component {
     return state + " had " + numStorms + " storms in 2018";
   }
 
-  handleSliderChange() {
-
+  handleSliderChange(value) {
+    console.log(value);
   }
 
   render() {
@@ -177,6 +183,49 @@ class MapContainer extends Component {
 
       </Polygon>
     );
+
+    var county_borders_list = [];
+    //console.log(counties);
+    //
+    for (var i = 0; i < counties.features.length; i++) {
+
+      var county = counties.features[i];
+      if (county.geometry.type == "MultiPolygon") {
+        for (var j = 0; j < county.geometry.coordinates.length; j++) {
+          county_borders_list.push(county.geometry.coordinates[j][0]);
+         // console.log(county.geometry.coordinates);
+        }
+      }
+      else {
+       // console.log(county.geometry.coordinates);
+        county_borders_list.push(county.geometry.coordinates[0]);
+      }
+    }
+
+   // console.log(county_borders_list);
+
+    const county_borders_arr = county_borders_list.map((county) =>
+      <Polygon
+        // onClick={() => (
+        //   this.toggleInfoWindow(border.state)
+        // )}
+        paths={convertToLatLngArr(county)}
+        strokeColor={"#000000"}
+        strokeOpacity={0.8}
+        strokeWeight={2}
+        fillColor={"0000FF"}
+        fillOpacity={0.35}
+      // onMouseover={
+      //   () => (
+      //     this.toggleInfoWindow(border.state)
+      //   )
+      // } 
+      >
+
+      </Polygon>
+    );
+   // console.log(county_borders_arr);
+
     var squareSize = {
       width: '30px',
       height: '30px',
@@ -189,6 +238,29 @@ class MapContainer extends Component {
       marginTop: "7px",
       width: '90%'
     };
+
+    var hasLat = [];
+    for (var i = 0; i < data.length; i++) {
+      var index = data[i];
+      if (index.BEGIN_LAT != "") {
+        hasLat.push(index);
+      }
+    }
+    //console.log(hasLat[0].END_LON);
+
+    // const listItems = hasLat.map((list) =>
+    //   <Marker
+    //     position={{ lat: list.ENDLAT, lng: list.ENDLON }}></Marker>
+    // );
+
+    // const listItems = data2.map((list) =>
+    //   <Marker title={parseYearMonth(list.YEARMONTH)}
+    //     position={{ lat: list.LATITUDE, lng: list.LONGITUDE }}></Marker>
+
+
+    // );
+
+    //  console.log(listItems);
 
 
     return (
@@ -210,15 +282,16 @@ class MapContainer extends Component {
                 {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)}
               </div>
             </InfoWindow>
-
+            {/* {listItems} */}
             {state_borders}
+            {/* {county_borders_arr} */}
           </Map>
 
         </div>
         <div style={range}>
-          <CustomizedSlider />
+          <CustomizedSlider onUpdate={(value) => (this.handleSliderChange(value))} />
         </div>
-        
+
       </div>
     );
 
@@ -234,19 +307,18 @@ class CustomizedSlider extends React.Component {
       G: 0,
       B: 255
     };
+    this.callbackValue = props.onUpdate;
 
   }
-  onSliderChange = (value) => {
-    this.setState({
-      value: value,
-      B: value
-    });
-    //this.setState({ B: value });
+  onRangeChange = (value) => {
+    this.setState({ R: Math.round(256 * (value[1] - value[0]) / 99) });
+    this.setState({ G: Math.round(256 * (value[2] - value[1]) / 99) });
+    this.setState({ B: Math.round(256 * (value[3] - value[2]) / 99) });
   }
 
   onAfterChange = (value) => {
     // console.log(value); //eslint-disable-line
-
+    this.callbackValue(value);
   }
 
   ensureLengthTwo(num) {
@@ -295,10 +367,10 @@ class CustomizedSlider extends React.Component {
           </svg>
         </div>
         <div style={slider}>
-          <Slider value={this.state.value}
-            onChange={this.onSliderChange} onAfterChange={this.onAfterChange}
-            min={0}
-            max={255}
+          <Range count={4} defaultValue={[10, 20, 30, 80]} pushable={0} onChange={this.onRangeChange} onAfterChange={this.onAfterChange} min={1} max={99}
+            trackStyle={[{ backgroundColor: 'red' }, { backgroundColor: 'green' }]}
+            handleStyle={[{ backgroundColor: 'yellow' }, { backgroundColor: 'gray' }]}
+            railStyle={{ backgroundColor: 'black' }}
           />
         </div>
       </div>
