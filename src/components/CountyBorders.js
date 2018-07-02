@@ -1,9 +1,10 @@
 import React, {
   Component
 } from 'react';
+import County from './County';
 import counties from '../csv/counties.json';
 import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
-var selectedState = "California";
+export var selectedState = "California";
 function generateCountyBorders() {
   var county_borders_list = [];
 
@@ -21,22 +22,43 @@ function generateCountyBorders() {
     }
   }
 
-  const style = { display: 'none' }
 
   const county_borders_arr = county_borders_list.map((county) =>
-    <Polygon2
-      // visible={county.state == selectedState ? true : false}
+    // <Polygon
+    //   visible={false}
+    //   // className={style}
+    //   paths={convertToLatLngArr(county.coordinates)}
+    // // state={county.state}
+    // //   strokeColor={"#000000"}
+    // //   strokeOpacity={0.8}
+    // //   strokeWeight={2}
+    // //   fillColor={"0000FF"}
+    // //   fillOpacity={0.35}
+    // >
+
+    // </Polygon>
+
+    <County
+      var isVisible={county.state == selectedState}
+      visible={isVisible}
       // className={style}
       paths={convertToLatLngArr(county.coordinates)}
+      state={county.state}
     //   strokeColor={"#000000"}
     //   strokeOpacity={0.8}
     //   strokeWeight={2}
     //   fillColor={"0000FF"}
     //   fillOpacity={0.35}
-     >
+    >
 
-    </Polygon2>
+    </County>
+
   );
+
+  // for (var i = 0; i < county_borders_arr.length; i++) {
+   //  county_borders_arr[0].changeSelectedState();
+  // }
+
   return county_borders_arr;
 }
 
@@ -50,30 +72,30 @@ function convertToLatLngArr(arr) {
   return points;
 
 }
-function getStyle(state) {
-  // console.log(state);
-  //var visible = state == selectedState ? "hidden" : "visible";  
-  return { visibility: 'hidden' };
+// function getStyle(state) {
+//   // console.log(state);
+//   //var visible = state == selectedState ? "hidden" : "visible";  
+//   return { visibility: 'hidden' };
 
-}
+// }
 
-class Polygon2 extends Polygon {
-  constructor(props) {
-    super(props);
-    this.paths = props.paths;
-  }
-  render() {
-    return <Polygon
-      visible={true}
-      paths={this.paths}
-      strokeColor={"#000000"}
-      strokeOpacity={0.8}
-      strokeWeight={2}
-      fillColor={"0000FF"}
-      fillOpacity={0.35}
-    />
-  }
+// class Polygon2 extends Polygon {
+//   constructor(props) {
+//     super(props);
+//     this.paths = props.paths;
+//   }
+//   render() {
+//     return <Polygon
+//       visible={true}
+//       paths={this.paths}
+//       strokeColor={"#000000"}
+//       strokeOpacity={0.8}
+//       strokeWeight={2}
+//       fillColor={"0000FF"}
+//       fillOpacity={0.35}
+//     />
+//   }
 
-}
+// }
 
 export default (generateCountyBorders);

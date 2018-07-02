@@ -9,6 +9,9 @@ import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-
 import CustomizedSlider from './components/CustomizedSlider';
 import { ifError } from 'assert';
 import buildStateBorders from './components/StateBorders';
+import updateState from './components/StateBorders';
+
+
 function parseYearMonth(yearMonth) {
   var year = (yearMonth + '').substring(0, 4);
   var monthNum = (yearMonth + '').substring(5);
@@ -59,6 +62,10 @@ class MapContainer extends Component {
     console.log(value);
   }
 
+  handleClick(){
+
+  }
+
   render() {
     const style = {
       width: '60%',
@@ -94,8 +101,8 @@ class MapContainer extends Component {
 
 
             {/* {listItems} */}
-            {/* {this.state.state_borders} */}
-            {this.state.county_borders}
+            {this.state.state_borders}
+            {/* {this.state.county_borders} */}
           </Map>
 
         </div>
@@ -107,6 +114,8 @@ class MapContainer extends Component {
     );
 
   }
+
+  
 }
 
 export default GoogleApiWrapper({

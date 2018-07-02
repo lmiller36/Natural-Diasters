@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import State from './State'
 import data from '../csv/data_2018.json';
 import states from '../csv/states.json';
 import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
@@ -68,10 +69,11 @@ function buildStateBorders(callbackClickedState) {
     }
 
     const stateBorder = borders.map((border) =>
-        <Polygon
+        <State
             onClick={() => (
                 callbackClickedState(border.state)
             )}
+            
             paths={convertToLatLngArr(border.border)}
             strokeColor={"#000000"}
             strokeOpacity={0.8}
@@ -85,7 +87,7 @@ function buildStateBorders(callbackClickedState) {
         // } 
         >
 
-        </Polygon>
+        </State>
     );
     return stateBorder;
 }
