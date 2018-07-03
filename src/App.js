@@ -8,10 +8,15 @@ import stateCenters from './csv/state_centers.json';
 import { Map, InfoWindow, GoogleApiWrapper } from 'google-maps-react';
 // import CustomizedSlider from './components/CustomizedSlider';
 import buildStateBorders from './components/StateBorders';
+<<<<<<< HEAD
 import configureAndResetStore from './redux/configure-store';
 import { Provider } from 'react-redux';
 
 export const store = configureAndResetStore();
+=======
+import updateState from './components/StateBorders';
+
+>>>>>>> 7abe8b72fd096027c67807d622297239bef8c2df
 
 function parseYearMonth(yearMonth) {
   var year = (yearMonth + '').substring(0, 4);

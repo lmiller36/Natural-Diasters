@@ -1,8 +1,12 @@
 import React, {
     Component
 } from 'react';
+<<<<<<< HEAD
 import * as actions from '../redux/actions';
 import { connect } from 'react-redux';
+=======
+import State from './State'
+>>>>>>> 7abe8b72fd096027c67807d622297239bef8c2df
 import data from '../csv/data_2018.json';
 import states from '../csv/states.json';
 import State from './State'
@@ -74,6 +78,7 @@ function buildStateBorders(callbackClickedState) {
 
     const stateBorder = borders.map((border) =>
         <State
+<<<<<<< HEAD
             onClick={
                 () => (
                     callbackClickedState(border.state)
@@ -84,6 +89,12 @@ function buildStateBorders(callbackClickedState) {
             //callbackClickedState={callbackClickedState}
             state={border.state}
             selectedState={window.selectedState}
+=======
+            onClick={() => (
+                callbackClickedState(border.state)
+            )}
+            
+>>>>>>> 7abe8b72fd096027c67807d622297239bef8c2df
             paths={convertToLatLngArr(border.border)}
             strokeColor={"#000000"}
             strokeOpacity={0.8}
@@ -97,6 +108,10 @@ function buildStateBorders(callbackClickedState) {
         // } 
         />
 
+<<<<<<< HEAD
+=======
+        </State>
+>>>>>>> 7abe8b72fd096027c67807d622297239bef8c2df
     );
     return stateBorder;
 }
