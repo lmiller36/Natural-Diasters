@@ -1,14 +1,18 @@
 import React, {
   Component
 } from 'react';
-import './App.css';
-import data2 from './csv/data_2017.json';
+import * as actions from './redux/actions';
+import { connect } from 'react-redux';
 import generateCountyBorders from './components/CountyBorders';
 import stateCenters from './csv/state_centers.json';
-import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
-import CustomizedSlider from './components/CustomizedSlider';
-import { ifError } from 'assert';
+import { Map, InfoWindow, GoogleApiWrapper } from 'google-maps-react';
+// import CustomizedSlider from './components/CustomizedSlider';
 import buildStateBorders from './components/StateBorders';
+import configureAndResetStore from './redux/configure-store';
+import { Provider } from 'react-redux';
+
+export const store = configureAndResetStore();
+
 function parseYearMonth(yearMonth) {
   var year = (yearMonth + '').substring(0, 4);
   var monthNum = (yearMonth + '').substring(5);
@@ -18,6 +22,8 @@ function parseYearMonth(yearMonth) {
   return month + "," + year;
 }
 
+
+
 class MapContainer extends Component {
   constructor(props) {
     super(props);
@@ -26,8 +32,9 @@ class MapContainer extends Component {
       infoWindowLat: 41,
       infoWindowLng: -116,
       state: "",
-      state_borders: buildStateBorders(this.callbackClickedState),
+      state_borders: buildStateBorders(this.props.callbackClickedState),
       county_borders: generateCountyBorders()
+
     };
     this.toggleInfoWindow = this.toggleInfoWindow.bind(this);
     this.buildComponent = this.buildComponent.bind(this);
@@ -45,11 +52,6 @@ class MapContainer extends Component {
     }
 
   }
-
-  callbackClickedState(state) {
-    console.log('here: ' + state);
-  }
-
 
   buildComponent(numStorms, state) {
     return state + " had " + numStorms + " storms in 2018";
@@ -85,34 +87,94 @@ class MapContainer extends Component {
             clickableIcons={true}
             zoom={4}
           >
+            {/* {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)} */}
 
-            <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
+            {/* <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
               <div>
-                {/* {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)} */}
               </div>
-            </InfoWindow>
+            </InfoWindow> */}
 
 
             {/* {listItems} */}
-            {/* {this.state.state_borders} */}
+            {this.state.state_borders}
             {this.state.county_borders}
           </Map>
 
         </div>
         <div style={range}>
-          <CustomizedSlider onUpdate={(value) => (this.handleSliderChange(value))} />
+          {/* <CustomizedSlider onUpdate={(value) => (this.handleSliderChange(value))} /> */}
         </div>
 
       </div>
+
+
     );
 
   }
 }
 
-export default GoogleApiWrapper({
+
+
+const GoogleMaps = GoogleApiWrapper({
   apiKey: 'AIzaSyDRxBYiF5OC6YDFwVpctIeFjtHg5C7VEKI',
   libraries: ['visualization']
 })(MapContainer);
+
+class Main extends Component {
+
+  constructor(props) {
+    super(props);
+  }
+
+  callbackClickedState(state) {
+    console.log('here: ' + state);
+    store.dispatch({
+      type: 'UPDATE_SELECTED_STATE',
+      selectedState: state
+    });
+    // console.log(this);
+    // this.props.updateSelectedState();
+  }
+
+  componentDidMount() {
+    //   store.dispatch({
+    //     type: 'UPDATE_SELECTED_STATE'
+    // });
+    // store.updateSelectedState();
+  }
+
+
+  render() {
+    return (
+      <GoogleMaps callbackClickedState={this.callbackClickedState} />
+
+    );
+  }
+}
+
+const mapStateToProps = (state) => ({
+  selectedState: state.selectedState
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  updateSelectedState: () => dispatch(actions.updateSelectedState())
+});
+
+const MainConnected = connect(mapStateToProps, mapDispatchToProps)(Main);
+
+class Wrapper extends Component {
+
+  render() {
+    return (
+      <Provider store={store}>
+        <MainConnected />
+      </Provider>
+    );
+  }
+}
+
+
+export default (Wrapper);
 
 /**
  * function getMoviesFromApiAsync() {

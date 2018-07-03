@@ -1,10 +1,15 @@
 import React, {
     Component
 } from 'react';
+import * as actions from '../redux/actions';
+import { connect } from 'react-redux';
 import data from '../csv/data_2018.json';
 import states from '../csv/states.json';
+import State from './State'
+import Store from '../App'
 import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
 var R = 160, G = 0, B = 255;
+
 
 
 function buildStateBorders(callbackClickedState) {
@@ -68,10 +73,17 @@ function buildStateBorders(callbackClickedState) {
     }
 
     const stateBorder = borders.map((border) =>
-        <Polygon
-            onClick={() => (
-                callbackClickedState(border.state)
-            )}
+        <State
+            onClick={
+                () => (
+                    callbackClickedState(border.state)
+                 // this.props.updateSelectedState()
+                )
+
+            }
+            //callbackClickedState={callbackClickedState}
+            state={border.state}
+            selectedState={window.selectedState}
             paths={convertToLatLngArr(border.border)}
             strokeColor={"#000000"}
             strokeOpacity={0.8}
@@ -83,9 +95,8 @@ function buildStateBorders(callbackClickedState) {
         //     this.toggleInfoWindow(border.state)
         //   )
         // } 
-        >
+        />
 
-        </Polygon>
     );
     return stateBorder;
 }
