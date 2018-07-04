@@ -6,7 +6,8 @@ import stateCenters from '../csv/state_centers.json';
 import { Map, GoogleApiWrapper } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
 import buildStateBorders from './StateBorders';
-
+import { CountyElement } from './County';
+import { convertToLatLngArr } from './CountyBorders';
 
 class MapContainer extends Component {
   constructor(props) {
@@ -14,15 +15,31 @@ class MapContainer extends Component {
     this.state = {
       isVisible: false,
       infoWindowLat: 41,
+      selectedState: "",
       infoWindowLng: -116,
       state: "",
-      state_borders: buildStateBorders(this.props.callbackClickedState),
-      county_borders: generateCountyBorders()
+      state_borders: buildStateBorders((state) => {
+        this.props.callbackClickedState(state);
+        this.setState({ selectedState: state });
+      }
+      ),//this.props.callbackClickedState),
+      county_borders_list: generateCountyBorders()
 
     };
     this.toggleInfoWindow = this.toggleInfoWindow.bind(this);
     this.buildComponent = this.buildComponent.bind(this);
 
+  }
+
+  internalCallbackClick(state) {
+    this.props.callbackClickedState(state);
+
+    // callbackClickedState(state) {
+    //   store.dispatch({
+    //     type: 'UPDATE_SELECTED_STATE',
+    //     selectedState: state
+    //   });
+    // }
   }
 
   //sets Info Window properties of the state given
@@ -81,7 +98,20 @@ class MapContainer extends Component {
 
             {/* {listItems} */}
             {this.state.state_borders}
-            {this.state.county_borders}
+            {this.state.county_borders_list.map((county) => {
+              if (this.state.selectedState === county.state) {
+                return <CountyElement
+                  paths={convertToLatLngArr(county.coordinates)}
+                  state={county.state}
+                  visible={this.state.selectedState === county.state}
+                />;
+              }
+              return null;
+            }
+            )
+            }
+
+            {/* {this.state.county_borders} */}
           </Map>
 
         </div>

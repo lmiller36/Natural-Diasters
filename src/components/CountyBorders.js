@@ -20,19 +20,18 @@ function generateCountyBorders() {
   }
 
 
-  const county_borders_arr = county_borders_list.map((county) =>
-    <CountyElement
-      paths={convertToLatLngArr(county.coordinates)}
-      state={county.state}
+  // const county_borders_arr = county_borders_list.map((county) =>
+  //   <CountyElement
+  //     paths={convertToLatLngArr(county.coordinates)}
+  //     state={county.state}
 
-    />
+  //   />
+  // );
 
-  );
-
-  return county_borders_arr;
+  return county_borders_list;
 }
 
-function convertToLatLngArr(arr) {
+export function convertToLatLngArr(arr) {
   var points = [];
   for (var i = 0; i < arr.length; i++) {
     var point = { lat: arr[i][1], lng: arr[i][0] };
