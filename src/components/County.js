@@ -1,69 +1,47 @@
 import React, {
     Component
 } from 'react';
-import { Map, Marker, InfoWindow, Polygon, GoogleApiWrapper } from 'google-maps-react';
+import {Polygon } from 'google-maps-react';
+import { connect } from 'react-redux';
 
 class County extends Polygon {
     constructor(props) {
         super(props);
-        //this.paths = props.paths;
-        //this.myState = props.state;
         this.state = {
-            selectedState: "California",
-            myState: props.state
-        }
-        //super.visible = this.state.myState == this.state.selectedState;
-      //  this.changeSelectedState = this.changeSelectedState.bind(this);
-       // this.changeSelectedState();
-
-
-        // this.visible = false;
-        // // paths={this.paths}
-        // this.strokeColor = "#000000"
-        // this.strokeOpacity = 0.8
-        // this.strokeWeight = 2
-        // this.fillColor = "0000FF"
-        // this.fillOpacity = 0.35
+            myState: props.state,
+            wasPreviousClick: false
+        };
     }
 
-    // componentDidMount(){
-    //     super.componentDidMount();
-    //     if (this.state.myState == this.state.selectedState) {
-    //         this.visible = true;
-    //         console.log('here');
-    //         this.renderPolygon();
-    //     }
-    // }
 
-    changeSelectedState() {
-        if (this.myState == this.state.selectedState) {
-            this.visible = true;
+    componentDidUpdate(prevProps) {
+        if (this.props.selectedState !== prevProps.selectedState) {
+            if (this.state.wasPreviousClick) this.visible = false;
             this.renderPolygon();
         }
     }
 
+    renderPolygon() {
 
-    renderPolygon(){
-       // console.log(this.visible);
-        super.renderPolygon();
+        if (this.props.selectedState == this.state.myState) {
+            this.setState({ wasPreviousClick: true })
+            return super.renderPolygon();
+        }
+        else if (this.state.wasPreviousClick) {
+            console.log('previous click');
+            return super.renderPolygon();
+        }
+
+
+        else return null;
+
     }
-
-
-    // renderPolygon() {
-    //     this.visible = this.myState == this.state.selectedState;
-    //     // console.log(this.myState+" "+this.state.selectedState+" "+shouldBeVisible)
-    //     return super.renderPolygon();
-    //     // return <Polygon
-    //     //     visible={false}
-    //     //     paths={this.paths}
-    //     //     strokeColor={"#000000"}
-    //     //     strokeOpacity={0.8}
-    //     //     strokeWeight={2}
-    //     //     fillColor={"0000FF"}
-    //     //     fillOpacity={0.35}
-    //     // />
-    // }
 
 }
 
-export default (County);
+const mapStateToProps = (state) => ({
+    selectedState: state.selectedState
+});
+
+export const CountyElement = connect(mapStateToProps)(County);
+export default connect(mapStateToProps)(County);
