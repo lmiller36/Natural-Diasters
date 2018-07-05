@@ -1,54 +1,76 @@
 import React from 'react';
-import data from '../csv/data_2018.json';
+import data2018 from '../csv/data_2018.json';
 import states from '../csv/states.json';
 import State from './State'
 
 var R = 160, G = 0, B = 255;
 
+class Quartiles {
+    constructor(DataSet, quartile_range) {
+        this.DataSet = DataSet;
+        this.quartile_range = quartile_range;
 
+        this.distribution = this.buildStateDist();
+        this.quartiles = this.mapStateDistToQuartileRanges();
+        console.log(this);
+
+        //create dict in form {Texas:25 Alaska:12 ...}
+
+
+
+
+    }
+
+    buildStateDist() {
+        console.log(this);
+        var state_dist = {};
+        this.DataSet.forEach(storm => {
+            if (state_dist[storm.STATE] == null)
+                state_dist[storm.STATE] = 0;
+            state_dist[storm.STATE]++;
+        });
+        return state_dist;
+    }
+
+    mapStateDistToQuartileRanges() {
+        //create sorted list in form [[1,California],[3,Washington]...]
+        var keys = Object.keys(this.distribution);
+        var keyValArr = [];
+        for (var i = 0; i < keys.length; i++) keyValArr.push([keys[i], this.distribution[keys[i]]]);
+        keyValArr.sort(function (a, b) { return a[1] - b[1] });
+
+
+        //Maps distribution of storms to quartiles(ranges of values) with each state's quartile being its value
+        //creates dictionary in form {Texas:1 California:2 Alaska:2}
+        var quartileDict = {};
+        var curr = 0;
+        var quartile_range = 10;
+        var quartile = Math.trunc(keyValArr.length / this.quartile_range);
+        var currQuartile = 0;
+        while (curr < keyValArr.length) {
+            if (keyValArr.length - curr >= quartile) {
+                for (i = 0; i < quartile; i++) {
+
+                    quartileDict[keyValArr[curr + i][0]] = currQuartile;
+                }
+                currQuartile++;
+                curr += quartile;
+            }
+            else {
+                while (curr < keyValArr.length) {
+                    quartileDict[keyValArr[curr][0]] = currQuartile;
+                    curr++;
+                }
+            }
+
+        }
+        return quartileDict;
+
+    }
+}
 
 function buildStateBorders(callbackClickedState) {
 
-    //create dict in form {Texas:25 Alaska:12 ...}
-    var state_dist = {};
-    data.forEach(storm => {
-        if (state_dist[storm.STATE] == null)
-            state_dist[storm.STATE] = 0;
-        state_dist[storm.STATE]++;
-    })
-
-    //create sorted list in form [[1,California],[3,Washington]...]
-    var keys = Object.keys(state_dist);
-    var keyValArr = [];
-    for (var i = 0; i < keys.length; i++) keyValArr.push([keys[i], state_dist[keys[i]]]);
-    keyValArr.sort(function (a, b) { return a[1] - b[1] });
-
-
-    //Maps distribution of storms to quartiles(ranges of values) with each state's quartile being its value
-    //creates dictionary in form {Texas:1 California:2 Alaska:2}
-    var quartileDict = {};
-    var curr = 0;
-    var quartile_range = 4;
-    var quartile = Math.trunc(keyValArr.length / quartile_range);
-    var currQuartile = 0;
-    while (curr < keyValArr.length) {
-        if (keyValArr.length - curr >= quartile) {
-            for (i = 0; i < quartile; i++) {
-
-                quartileDict[keyValArr[curr + i][0]] = currQuartile;
-            }
-            currQuartile++;
-            curr += quartile;
-        }
-        else {
-            while (curr < keyValArr.length) {
-                quartileDict[keyValArr[curr][0]] = currQuartile;
-                curr++;
-            }
-        }
-
-    }
-    
     //creates a list of all borders provided (some states have multiple)
     const borders = [];
     states.features.forEach(state => {
@@ -62,6 +84,7 @@ function buildStateBorders(callbackClickedState) {
     });
 
 
+    const stateQuartiles = new Quartiles(data2018, 10);
 
     const stateBorder = borders.map((border) =>
         <State
@@ -75,13 +98,8 @@ function buildStateBorders(callbackClickedState) {
             strokeColor={"#000000"}
             strokeOpacity={0.8}
             strokeWeight={2}
-            fillColor={getFillColor(quartileDict[border.state.toUpperCase()], quartile_range)}
+            fillColor={getFillColor(stateQuartiles.quartiles[border.state.toUpperCase()], stateQuartiles.quartile_range)}
             fillOpacity={0.35}
-        // onMouseover={
-        //   () => (
-        //     this.toggleInfoWindow(border.state)
-        //   )
-        // } 
         />
 
     );

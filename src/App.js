@@ -11,8 +11,9 @@ import buildStateBorders from './components/StateBorders';
 import configureAndResetStore from './redux/configure-store';
 import { Provider } from 'react-redux';
 import { GoogleMaps } from './components/Map';
-export const store = configureAndResetStore();
+import { state_centers } from './csv/state_centers';
 
+export const store = configureAndResetStore();
 
 function parseYearMonth(yearMonth) {
   var year = (yearMonth + '').substring(0, 4);
@@ -31,23 +32,26 @@ class Main extends Component {
   }
 
   callbackClickedState(state) {
+
     store.dispatch({
       type: 'UPDATE_SELECTED_STATE',
-      selectedState: state
+      selectedState: state,
+      center: stateCenters[state.toUpperCase()]
     });
   }
 
 
   render() {
     return (
-      <GoogleMaps callbackClickedState={this.callbackClickedState} />
+      <GoogleMaps callbackClickedState={this.callbackClickedState} center={this.props.center} />
 
     );
   }
 }
 
 const mapStateToProps = (state) => ({
-  selectedState: state.selectedState
+  selectedState: state.selectedState,
+  center: state.center
 });
 
 const mapDispatchToProps = (dispatch) => ({

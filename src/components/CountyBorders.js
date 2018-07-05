@@ -1,7 +1,39 @@
 import React from 'react';
 import counties from '../csv/counties.json';
-import {CountyElement} from './County.js'
+// import {CountyElement} from './County.js'
+import data2018 from '../csv/data_2018.json';
 
+//NOTE THAT SOME COUNTY NAMES ARE NOT FOUND SO POINT NOT INCLUDED IN COUNTY COLORS, BUT PRESENT IN STATE CALC
+export function GetCountyDistribution() {
+  var missing = 0, found = 0;
+  const countiesDict = {}
+  counties.features.forEach(county => {
+    if (!countiesDict[county.properties.STATE.toUpperCase()])
+      countiesDict[county.properties.STATE.toUpperCase()] = {};
+    countiesDict[county.properties.STATE.toUpperCase()][(county.properties.NAME.toUpperCase())] = "Here";
+
+  });
+  console.log(countiesDict);
+
+  const distribution = {};
+  data2018.forEach(dataPoint => {
+    if (!distribution[dataPoint.STATE])
+      distribution[dataPoint.STATE] = {};
+    if (!distribution[dataPoint.STATE][dataPoint.CZ_NAME]) {
+      if (countiesDict[dataPoint.STATE]) {
+        if (countiesDict[dataPoint.STATE][dataPoint.CZ_NAME]) found++;
+        else {
+          //console.log(dataPoint.STATE + " " + dataPoint.CZ_NAME);
+          missing++;
+        }
+      }
+      distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+    }
+    distribution[dataPoint.STATE][dataPoint.CZ_NAME].push(dataPoint);
+  });
+  console.log(distribution);
+  // console.log("missing: " + missing + " found: " + found);
+}
 
 function generateCountyBorders() {
   var county_borders_list = [];

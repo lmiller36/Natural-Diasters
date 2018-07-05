@@ -9,7 +9,7 @@ class CustomizedSlider extends React.Component {
         super(props);
         this.state = {
             value: 255,
-            R: 0,
+            R: 160,
             G: 0,
             B: 255
         };

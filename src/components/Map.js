@@ -3,11 +3,11 @@ import React, {
 } from 'react';
 import generateCountyBorders from '../components/CountyBorders';
 import stateCenters from '../csv/state_centers.json';
-import { Map, GoogleApiWrapper } from 'google-maps-react';
+import { Map, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
 import buildStateBorders from './StateBorders';
 import { CountyElement } from './County';
-import { convertToLatLngArr } from './CountyBorders';
+import { convertToLatLngArr, GetCountyDistribution } from './CountyBorders';
 
 class MapContainer extends Component {
   constructor(props) {
@@ -17,29 +17,22 @@ class MapContainer extends Component {
       infoWindowLat: 41,
       selectedState: "",
       infoWindowLng: -116,
-      state: "",
       state_borders: buildStateBorders((state) => {
         this.props.callbackClickedState(state);
         this.setState({ selectedState: state });
+        this.toggleInfoWindow(state);
       }
       ),//this.props.callbackClickedState),
       county_borders_list: generateCountyBorders()
 
     };
     this.toggleInfoWindow = this.toggleInfoWindow.bind(this);
-    this.buildComponent = this.buildComponent.bind(this);
+    GetCountyDistribution();
 
   }
 
   internalCallbackClick(state) {
     this.props.callbackClickedState(state);
-
-    // callbackClickedState(state) {
-    //   store.dispatch({
-    //     type: 'UPDATE_SELECTED_STATE',
-    //     selectedState: state
-    //   });
-    // }
   }
 
   //sets Info Window properties of the state given
@@ -54,9 +47,6 @@ class MapContainer extends Component {
 
   }
 
-  buildComponent(numStorms, state) {
-    return state + " had " + numStorms + " storms in 2018";
-  }
 
   handleSliderChange(value) {
     console.log(value);
@@ -85,15 +75,15 @@ class MapContainer extends Component {
               lat: 32.9582895,
               lng: -117.1600157
             }}
+            center={this.props.center}
             clickableIcons={true}
             zoom={4}
           >
-            {/* {this.buildComponent(state_dist[this.state.state.toUpperCase()], this.state.state)} */}
 
-            {/* <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
+            <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
               <div>
               </div>
-            </InfoWindow> */}
+            </InfoWindow>
 
 
             {/* {listItems} */}
@@ -104,6 +94,11 @@ class MapContainer extends Component {
                   paths={convertToLatLngArr(county.coordinates)}
                   state={county.state}
                   visible={this.state.selectedState === county.state}
+                  strokeColor={"#000000"}
+                  strokeOpacity={0.8}
+                  strokeWeight={2}
+                  fillColor={"#000000"}
+                  fillOpacity={0.35}
                 />;
               }
               return null;
