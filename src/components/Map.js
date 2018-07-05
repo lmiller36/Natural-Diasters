@@ -5,10 +5,11 @@ import generateCountyBorders from '../components/CountyBorders';
 import stateCenters from '../csv/state_centers.json';
 import { Map, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
-import buildStateBorders from './StateBorders';
+import { buildStateBorders, Quartiles, getFillColor } from './StateBorders';
 import { CountyElement } from './County';
-import { convertToLatLngArr, GetCountyDistribution } from './CountyBorders';
-
+import { convertToLatLngArr } from './CountyBorders';
+import data2018 from '../csv/data_2018.json';
+import State from './State'
 class MapContainer extends Component {
   constructor(props) {
     super(props);
@@ -17,23 +18,25 @@ class MapContainer extends Component {
       infoWindowLat: 41,
       selectedState: "",
       infoWindowLng: -116,
-      state_borders: buildStateBorders((state) => {
-        this.props.callbackClickedState(state);
-        this.setState({ selectedState: state });
-        this.toggleInfoWindow(state);
-      }
-      ),//this.props.callbackClickedState),
+      state_borders_list: buildStateBorders(),//this.props.callbackClickedState),
+      stateQuartiles: new Quartiles(data2018, 4,true),
       county_borders_list: generateCountyBorders()
 
     };
     this.toggleInfoWindow = this.toggleInfoWindow.bind(this);
-    GetCountyDistribution();
 
   }
 
   internalCallbackClick(state) {
     this.props.callbackClickedState(state);
   }
+
+  // getFillColorCounty(state,county){
+  //   console.log(state+" "+county);
+  //   var countyQuartile=this.state.stateQuartiles.quartiles_county[state.toUpperCase()];
+  //   console.log(countyQuartile[county.toUpperCase()]);
+  //   return "#0000FF";
+  // }
 
   //sets Info Window properties of the state given
   toggleInfoWindow(state) {
@@ -87,17 +90,35 @@ class MapContainer extends Component {
 
 
             {/* {listItems} */}
-            {this.state.state_borders}
+            {this.state.state_borders_list.map((border) =>
+              <State
+                state={border.state}
+                selectedState={window.selectedState}
+                onClick={(state) => {
+                  this.props.callbackClickedState(state.state);
+                  this.setState({ selectedState: state.state });
+                  this.toggleInfoWindow(state.state);
+                }}
+
+                paths={convertToLatLngArr(border.border)}
+                strokeColor={"#000000"}
+                strokeOpacity={0.8}
+                strokeWeight={2}
+                fillColor={getFillColor(this.state.stateQuartiles.quartiles_state[border.state.toUpperCase()], this.state.stateQuartiles.quartile_range,false)}
+                fillOpacity={0.35}
+              />
+
+            )}
             {this.state.county_borders_list.map((county) => {
-              if (this.state.selectedState === county.state) {
+               if (this.state.selectedState === county.state) {
                 return <CountyElement
                   paths={convertToLatLngArr(county.coordinates)}
                   state={county.state}
-                  visible={this.state.selectedState === county.state}
+                  // visible={this.state.selectedState === county.state}
                   strokeColor={"#000000"}
                   strokeOpacity={0.8}
                   strokeWeight={2}
-                  fillColor={"#000000"}
+                  fillColor={getFillColor(this.state.stateQuartiles.quartiles_county[county.state.toUpperCase()][county.name.toUpperCase()],this.state.stateQuartiles.quartile_range,true)}
                   fillOpacity={0.35}
                 />;
               }
@@ -121,6 +142,9 @@ class MapContainer extends Component {
 
   }
 }
+
+
+
 export const GoogleMaps = GoogleApiWrapper({
   apiKey: 'AIzaSyDRxBYiF5OC6YDFwVpctIeFjtHg5C7VEKI',
   libraries: ['visualization']
