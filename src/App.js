@@ -35,8 +35,7 @@ class Main extends Component {
 
     store.dispatch({
       type: 'UPDATE_SELECTED_STATE',
-      selectedState: state,
-      center: stateCenters[state.toUpperCase()]
+      selectedState: state
     });
   }
 
@@ -50,8 +49,7 @@ class Main extends Component {
 }
 
 const mapStateToProps = (state) => ({
-  selectedState: state.selectedState,
-  center: state.center
+  selectedState: state.selectedState
 });
 
 const mapDispatchToProps = (dispatch) => ({

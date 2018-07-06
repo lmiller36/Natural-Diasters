@@ -12,12 +12,9 @@ function performAction(state = [], action) {
 
         case constants.UPDATESELECTEDSTATE:
             state = {
-                selectedState: action.selectedState,
-                center: action.center
+                selectedState: action.selectedState
             };
             return state;
-
-
         default:
             {
                 return {

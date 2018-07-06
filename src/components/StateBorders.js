@@ -15,7 +15,6 @@ export class Quartiles {
         this.distribution_county = this.buildCountyDist();
         this.quartiles_state = this.mapStateDistToQuartileRanges();
         this.quartiles_county = this.mapCountyDistToQuartileRanges();
-        console.log(this);
         //create dict in form {Texas:25 Alaska:12 ...}
     }
     buildCountiesInState() {
@@ -26,7 +25,6 @@ export class Quartiles {
             countiesDict[county.properties.STATE.toUpperCase()][(county.properties.NAME.toUpperCase())] = "Here";
 
         });
-        //    console.log(countiesDict);
         return countiesDict;
     }
     //ADD NUM StoRmS per STATE
@@ -50,15 +48,7 @@ export class Quartiles {
             }
             distribution[dataPoint.STATE][dataPoint.CZ_NAME].push(dataPoint);
         });
-        // console.log(distribution);
 
-        //UPDATE ALL MISSIng DATA pts
-        // var texasDataKeys = Object.keys(distribution.TEXAS);
-        // for (var i = 0; i < texasDataKeys.length; i++) {
-        //     if (this.countiesInStates['TEXAS'][texasDataKeys[i]]) found++;
-        //     else console.log("Missing: " + texasDataKeys[i])
-        // }
-        // console.log(found);
         return distribution;
     }
 
@@ -222,22 +212,33 @@ export class Quartiles {
 }
 
 export function buildStateBorders() {
-
     //creates a list of all borders provided (some states have multiple)
+
+    var boundsBoxes = {};
+
     const borders = [];
     states.features.forEach(state => {
+        var bounds = new window.google.maps.LatLngBounds();
         if (state.geometry.type == "MultiPolygon") {
             state.geometry.coordinates.forEach(border => {
                 borders.push({ 'border': border[0], 'state': state.properties.NAME });
+                border[0].forEach(datapoint => {
+                    bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
+                }
+                )
             });
         }
-        else
+        else {
             borders.push({ 'border': state.geometry.coordinates[0], 'state': state.properties.NAME });
+            state.geometry.coordinates[0].forEach(datapoint => {
+                bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
+            });
+        }
+        boundsBoxes[state.properties.NAME] = bounds;
     });
-
-
-    return borders;
+    return [borders, boundsBoxes];
 }
+
 
 //determines color/tint based on quartile of given state
 export function getFillColor(quartile, quartile_range, handleAsCounty) {
@@ -247,7 +248,6 @@ export function getFillColor(quartile, quartile_range, handleAsCounty) {
         else
             quartile = 0;
     }
-    else return "#000000"
     //var quartile = quartiles[state.toUpperCase()];
     return "#" + getTintValue(quartile, quartile_range, R) + getTintValue(quartile, quartile_range, G) + getTintValue(quartile, quartile_range, B);
 }
