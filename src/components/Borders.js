@@ -1,7 +1,8 @@
 import data2018 from '../csv/data_2018.json';
 import states from '../csv/states.json';
 import counties from '../csv/counties.json';
-var R = 160, G = 0, B = 255;
+import keywordsToRemove from '../csv/keywordsToRemove';
+// var R = 160, G = 0, B = 255;
 
 
 //NOTE THAT SOME COUNTY NAMES ARE NOT FOUND SO POINT NOT INCLUDED IN COUNTY COLORS, BUT PRESENT IN STATE CALC
@@ -11,11 +12,13 @@ export class Quartiles {
     constructor(DataSet, quartile_range, isState) {
         this.DataSet = DataSet;
         this.quartile_range = quartile_range;
+        this.keywordsRemovedForEachState = {};
         this.countiesInStates = this.buildCountiesInState();
         this.distribution_state = this.buildStateDist()
         this.distribution_county = this.buildCountyDist();
         this.quartiles_state = this.mapStateDistToQuartileRanges();
         this.quartiles_county = this.mapCountyDistToQuartileRanges();
+
         //create dict in form {Texas:25 Alaska:12 ...}
     }
     buildCountiesInState() {
@@ -28,6 +31,7 @@ export class Quartiles {
         });
         return countiesDict;
     }
+
     //ADD NUM StoRmS per STATE
     buildCountyDist() {
         var missing = 0, found = 0;
@@ -62,19 +66,19 @@ export class Quartiles {
         });
         return state_dist;
     }
+
     sortFunction(a, b) {
         var initialSort = a[1].length - b[1].length;
         if (initialSort !== 0) return initialSort;
         return a[0].localeCompare(b[0]);
     }
 
-
     mapStateDistToQuartileRanges() {
         //create sorted list in form [[1,California],[3,Washington]...]
         var keys = Object.keys(this.distribution_state);
-        var keyValArr = [];
-        for (var i = 0; i < keys.length; i++) keyValArr.push([keys[i], this.distribution_state[keys[i]]]);
-        keyValArr.sort(function (a, b) { return a[1] - b[1] });
+        var StormsInEachCounty = [];
+        for (var i = 0; i < keys.length; i++) StormsInEachCounty.push([keys[i], this.distribution_state[keys[i]]]);
+        StormsInEachCounty.sort(function (a, b) { return a[1] - b[1] });
 
 
         //Maps distribution of storms to quartiles(ranges of values) with each state's quartile being its value
@@ -82,20 +86,20 @@ export class Quartiles {
         var quartileDict = {};
         var curr = 0;
         var quartile_range = 10;
-        var quartile = Math.trunc(keyValArr.length / this.quartile_range);
+        var quartile = Math.trunc(StormsInEachCounty.length / this.quartile_range);
         var currQuartile = 0;
-        while (curr < keyValArr.length) {
-            if (keyValArr.length - curr >= quartile) {
+        while (curr < StormsInEachCounty.length) {
+            if (StormsInEachCounty.length - curr >= quartile) {
                 for (i = 0; i < quartile; i++) {
 
-                    quartileDict[keyValArr[curr + i][0]] = currQuartile;
+                    quartileDict[StormsInEachCounty[curr + i][0]] = currQuartile;
                 }
                 currQuartile++;
                 curr += quartile;
             }
             else {
-                while (curr < keyValArr.length) {
-                    quartileDict[keyValArr[curr][0]] = currQuartile;
+                while (curr < StormsInEachCounty.length) {
+                    quartileDict[StormsInEachCounty[curr][0]] = currQuartile;
                     curr++;
                 }
             }
@@ -104,6 +108,7 @@ export class Quartiles {
         return quartileDict;
 
     }
+
     mapStateDistToQuartileRangesTEST(stormsInEachCounty) {
         //create sorted list in form [[1,California],[3,Washington]...]
         var keys = Object.keys(stormsInEachCounty);
@@ -153,115 +158,181 @@ export class Quartiles {
         // console.log(keysStates);
         var missingStates = {};
         var countyQuartiles = {};
-        // var keyValArr = [];
+        //        for (var i = 0; i < keysStates.length; i++) {
+
         for (var i = 0; i < keysStates.length; i++) {
-            // console.log(keysStates[i]);
-            // console.log(this.distribution_county[keys[i]]);
+            this.keywordsRemovedForEachState[keysStates[i]] = {};
             if (this.countiesInStates[keysStates[i]]) {
 
-                //  console.log(keysStates[i]);
                 var stateData = this.distribution_county[keysStates[i]];
-                var keyValArr = [];
+                var StormsInEachCounty = [];
                 var keysCounties = Object.keys(stateData);
                 missingStates[keysStates[i]] = [];
-                // console.log(keysCounties);
                 keysCounties.forEach((county) => {
-                    if (this.countiesInStates[keysStates[i]][county])
-                        keyValArr.push([county, stateData[county]])
-                    else
-                        missingStates[keysStates[i]].push(county);
-                });
+                    var countyName = county;
+                    // StormsInEachCounty[county] = [county, stateData[county]];
+                    if (!this.countiesInStates[keysStates[i]][county]) {
+                        var newCountyName = this.findMissingCounty(county, keysStates[i]);
+                        if (!this.countiesInStates[keysStates[i]][newCountyName]) {
+                            missingStates[keysStates[i]].push(county);
+                            return;
+                        }
+                        // else
+                        //     console.log("FOUND " + newCountyName + " in " + keysStates[i]);
+                        countyName = newCountyName;
+                    }
 
-                //console.log(keyValArr);
-                countyQuartiles[keysStates[i]] = this.mapStateDistToQuartileRangesTEST(keyValArr);
+                    //repeat county name
+                    if (StormsInEachCounty[countyName]) {
+                        // console.log('before');
+                        StormsInEachCounty[countyName][1] = StormsInEachCounty[countyName][1].concat(stateData[county]);
+                        // console.log(stateData[county]);
+                        // console.log(StormsInEachCounty[countyName]);
+                    }
+                    else
+                        StormsInEachCounty[countyName] = [countyName, stateData[county]]
+
+                    // else {
+                    //     var newCountyName = this.findMissingCounty(county, keysStates[i]);
+                    //     if (StormsInEachCounty[newCountyName]) console.log(newCountyName + " has already been used");
+                    //     // if (this.countiesInStates[keysStates[i]][newCountyName]) {
+
+                    //     //     StormsInEachCounty.push([county, stateData[newCountyName]]);
+                    //     //     console.log(newCountyName + " has been appended");
+                    //     // }
+                    //     // else
+                    //     //     //FIX SO THESE ARE ADDED AND THE WORK IS NOT REDONE
+                    //     //     missingStates[keysStates[i]].push(county);
+                    // }
+                });
+                // console.log(keysStates[i]);
+                // console.log(StormsInEachCounty);
+                countyQuartiles[keysStates[i]] = this.mapStateDistToQuartileRangesTEST(Object.values(StormsInEachCounty));
             }
         }
-        // console.log(countyQuartiles)
-        // console.log(missingStates)
+
         this.missingCounties = missingStates;
-        // keyValArr.push([keys[i], this.distribution_county[keys[i]]]);
-        // keyValArr.sort();
-        //console.log(keyValArr);
-
-        //Maps distribution of storms to quartiles(ranges of values) with each state's quartile being its value
-        //creates dictionary in form {Texas:1 California:2 Alaska:2}
-        var quartileDict = {};
-        // var curr = 0;
-        // var quartile_range = 10;
-        // var quartile = Math.trunc(keyValArr.length / this.quartile_range);
-        // var currQuartile = 0;
-        // while (curr < keyValArr.length) {
-        //     if (keyValArr.length - curr >= quartile) {
-        //         for (i = 0; i < quartile; i++) {
-
-        //             quartileDict[keyValArr[curr + i][0]] = currQuartile;
-        //         }
-        //         currQuartile++;
-        //         curr += quartile;
-        //     }
-        //     else {
-        //         while (curr < keyValArr.length) {
-        //             quartileDict[keyValArr[curr][0]] = currQuartile;
-        //             curr++;
-        //         }
-        //     }
-
-        // }
+        console.log(missingStates);
+        console.log(this.keywordsRemovedForEachState);
+        // console.log(JSON.stringify(this.keywordsRemovedForEachState));
         return countyQuartiles;
 
     }
+
+    //Some of the data has county names surrounded by gibberish. This method seeks to have more datapoints included 
+    //which is accomplished by parsing out gibberish words(such as Eastern or Northern)
+    //#TODO REPLACE WITH REGEX
+    findMissingCounty(CountyName, State) {
+        var newCountyName = CountyName;
+        var wordsToSplitBy = Object.keys(keywordsToRemove[State]);
+        //['EASTERN', 'WESTERN', 'SOUTHERN', 'NORTHERN', 'NORTH', 'SOUTH', 'EAST', "WEST", 'NORTHWEST', "SOUTHEAST", "COASTAL", "COUNTY", "LOWER", "BASIN", "MOUNTAINS SOUTH OF I-80", "MOUNTAIN VALLEYS", "INLAND", "CENTRAL", "METRO AREA", "WINDWARD", "LEEWARD", "AREA", "GAP", "UPPER", "(BROOKLYN)", "(MANHATTAN)", "(STATEN IS.)", "MOUNTAINS"];
+        wordsToSplitBy.forEach(word => {
+            if (newCountyName.indexOf(word) != -1) {
+                this.keywordsRemovedForEachState[State][word] = CountyName;
+                //CountyName = CountyName.split(word)[0];
+                // console.log(CountyName);
+                newCountyName = newCountyName.split(word)[1].trim();
+                //onsole.log(CountyName);
+
+                if (this.countiesInStates[State][newCountyName]) {
+
+                    //console.log("FOUND from keywords: " + State + " " + newCountyName);
+                    return;
+                }
+
+                //     console.log(word+" "+CountyName+" "+State);
+                //    console.log(this.countiesInStates[State]);
+            }
+        });
+
+        //still not found
+        if (newCountyName == CountyName) {
+            newCountyName = CountyName.replace(/\s/g, '');
+            //console.log(newCountyName);
+            if (this.countiesInStates[State][newCountyName])
+                return newCountyName;
+            else
+                return null;
+            // var split = newCountyName.split(" ");
+            // split.forEach(word => {
+
+            //     if (this.countiesInStates[State][word]) {
+            //         // for (var i = 0; i < split.length; i++)
+            //         //     if (split[i] != word) this.keywordsRemovedForEachState[State][split[i]] = CountyName;
+
+            //         console.log(word + " in " + CountyName + ", " + State);
+            //         return;
+            //     }
+            // });
+            //console.log("NOT FOUND: " + State + " " + CountyName);
+        }
+        return newCountyName;
+    }
 }
 
-export function generateCountyBorders() {
 
-    var county_borders_list = [];
-    for (var i = 0; i < counties.features.length; i++) {
 
-        var county = counties.features[i];
-        if (county.geometry.type === "MultiPolygon") {
-            for (var j = 0; j < county.geometry.coordinates.length; j++) {
-                county_borders_list.push({ 'coordinates': county.geometry.coordinates[j][0], 'name': county.properties.NAME, 'state': county.properties.STATE });
-            }
-        }
-        else {
-            county_borders_list.push({ 'coordinates': county.geometry.coordinates[0], 'name': county.properties.NAME, 'state': county.properties.STATE });
-        }
+export class Borders {
+    constructor() {
+        this.county_borders_list = this.generateCountyBorders();
+        this.generateStateBorders();
     }
 
-    return county_borders_list;
-}
+    generateCountyBorders() {
 
-export function buildStateBorders() {
-    //creates a list of all borders provided (some states have multiple)
+        var county_borders_list = [];
+        for (var i = 0; i < counties.features.length; i++) {
 
-    var boundsBoxes = {};
-
-    const borders = [];
-    states.features.forEach(state => {
-        var bounds = new window.google.maps.LatLngBounds();
-        if (state.geometry.type === "MultiPolygon") {
-            state.geometry.coordinates.forEach(border => {
-                borders.push({ 'border': border[0], 'state': state.properties.NAME });
-                border[0].forEach(datapoint => {
-                    bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
+            var county = counties.features[i];
+            if (county.geometry.type === "MultiPolygon") {
+                for (var j = 0; j < county.geometry.coordinates.length; j++) {
+                    county_borders_list.push({ 'coordinates': county.geometry.coordinates[j][0], 'name': county.properties.NAME, 'state': county.properties.STATE });
                 }
-                )
-            });
-        }
-        else {
-            borders.push({ 'border': state.geometry.coordinates[0], 'state': state.properties.NAME });
-            state.geometry.coordinates[0].forEach(datapoint => {
-                bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
-            });
+            }
+            else {
+                county_borders_list.push({ 'coordinates': county.geometry.coordinates[0], 'name': county.properties.NAME, 'state': county.properties.STATE });
+            }
         }
 
-        boundsBoxes[state.properties.NAME] = bounds.toJSON(); //[bounds.getNorthEast().toJSON(),bounds.getSouthWest().toJSON()];
-    });
-    return [borders, boundsBoxes];
+        return county_borders_list;
+    }
+
+    generateStateBorders() {
+        //creates a list of all borders provided (some states have multiple)
+
+        var boundsBoxes = {};
+
+        const borders = [];
+        states.features.forEach(state => {
+            var bounds = new window.google.maps.LatLngBounds();
+            if (state.geometry.type === "MultiPolygon") {
+                state.geometry.coordinates.forEach(border => {
+                    borders.push({ 'border': border[0], 'state': state.properties.NAME });
+                    border[0].forEach(datapoint => {
+                        bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
+                    }
+                    )
+                });
+            }
+            else {
+                borders.push({ 'border': state.geometry.coordinates[0], 'state': state.properties.NAME });
+                state.geometry.coordinates[0].forEach(datapoint => {
+                    bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
+                });
+            }
+
+            boundsBoxes[state.properties.NAME] = bounds.toJSON(); //[bounds.getNorthEast().toJSON(),bounds.getSouthWest().toJSON()];
+        });
+        this.boundsBoxes = boundsBoxes;
+        this.state_borders_list = borders;
+        //return [borders, boundsBoxes];
+    }
+
 }
+
 
 //determines color/tint based on quartile of given state
-export function getFillColor(quartile, quartile_range, handleAsCounty) {
+export function getFillColor(quartile, quartile_range, handleAsCounty, RGB) {
     if (handleAsCounty) {
         if (quartile)
             quartile = quartile[0];
@@ -269,7 +340,7 @@ export function getFillColor(quartile, quartile_range, handleAsCounty) {
             quartile = 0;
     }
     //var quartile = quartiles[state.toUpperCase()];
-    return "#" + getTintValue(quartile, quartile_range, R) + getTintValue(quartile, quartile_range, G) + getTintValue(quartile, quartile_range, B);
+    return "#" + getTintValue(quartile, quartile_range, RGB[0]) + getTintValue(quartile, quartile_range, RGB[1]) + getTintValue(quartile, quartile_range, RGB[2]);
 }
 
 //receives a list in the form [[-117,41],[-116,42]...] and converts to a list in the form [{lat:41 lng:41}...]
@@ -291,4 +362,4 @@ export function getTintValue(quartile, numQuartiles, originalValue) {
     return newTint.toString(16);
 }
 
-export default (buildStateBorders);
+export default (Borders);

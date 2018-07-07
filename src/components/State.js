@@ -10,6 +10,19 @@ class State extends Polygon {
 
     }
 
+    componentDidUpdate(prevProps) {
+        // Typical usage (don't forget to compare props):
+        if (this.props !== prevProps){
+            // console.log(prevProps);
+            // console.log("TO");
+            // console.log(this.props);
+            this.renderPolygon();
+        }
+        // if (this.props.fillColor !== prevProps.fillColor) {
+        //     //console.log(prevProps.fillColor+" TO "+this.props.fillColor)
+        //     this.renderPolygon();
+        // }
+    }
 
 
 

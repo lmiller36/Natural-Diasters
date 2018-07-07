@@ -14,6 +14,7 @@ class CustomizedSlider extends Component {
             B: 255
         };
         this.callbackValue = props.onUpdate;
+        this.onAfterChange = this.onAfterChange.bind(this);
 
     }
     onRangeChange = (value) => {
@@ -23,7 +24,7 @@ class CustomizedSlider extends Component {
     }
 
     onAfterChange = (value) => {
-        this.callbackValue(value);
+        this.callbackValue([this.state.R, this.state.G, this.state.B]);
     }
 
     ensureLengthTwo(num) {
