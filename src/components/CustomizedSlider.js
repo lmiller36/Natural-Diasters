@@ -4,7 +4,7 @@ import React, {
     Component
 } from 'react';
 
-class CustomizedSlider extends React.Component {
+class CustomizedSlider extends Component {
     constructor(props) {
         super(props);
         this.state = {

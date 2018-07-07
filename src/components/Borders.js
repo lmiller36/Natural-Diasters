@@ -1,10 +1,11 @@
-import React from 'react';
 import data2018 from '../csv/data_2018.json';
 import states from '../csv/states.json';
-import State from './State'
 import counties from '../csv/counties.json';
-
 var R = 160, G = 0, B = 255;
+
+
+//NOTE THAT SOME COUNTY NAMES ARE NOT FOUND SO POINT NOT INCLUDED IN COUNTY COLORS, BUT PRESENT IN STATE CALC
+
 
 export class Quartiles {
     constructor(DataSet, quartile_range, isState) {
@@ -55,7 +56,7 @@ export class Quartiles {
     buildStateDist() {
         var state_dist = {};
         this.DataSet.forEach(dataPoint => {
-            if (state_dist[dataPoint.STATE] == null)
+            if (state_dist[dataPoint.STATE] === null)
                 state_dist[dataPoint.STATE] = 0;
             state_dist[dataPoint.STATE]++;
         });
@@ -63,7 +64,7 @@ export class Quartiles {
     }
     sortFunction(a, b) {
         var initialSort = a[1].length - b[1].length;
-        if (initialSort != 0) return initialSort;
+        if (initialSort !== 0) return initialSort;
         return a[0].localeCompare(b[0]);
     }
 
@@ -115,7 +116,7 @@ export class Quartiles {
         var curr = 0;
         var quartile = Math.trunc(stormsInEachCounty.length / this.quartile_range);
         var currQuartile = 0;
-        if (quartile == 0) {
+        if (quartile === 0) {
             while (curr < stormsInEachCounty.length) {
                 quartileDict[stormsInEachCounty[curr][0]] = [currQuartile, stormsInEachCounty[curr][1]];
                 currQuartile++;
@@ -211,6 +212,25 @@ export class Quartiles {
     }
 }
 
+export function generateCountyBorders() {
+
+    var county_borders_list = [];
+    for (var i = 0; i < counties.features.length; i++) {
+
+        var county = counties.features[i];
+        if (county.geometry.type === "MultiPolygon") {
+            for (var j = 0; j < county.geometry.coordinates.length; j++) {
+                county_borders_list.push({ 'coordinates': county.geometry.coordinates[j][0], 'name': county.properties.NAME, 'state': county.properties.STATE });
+            }
+        }
+        else {
+            county_borders_list.push({ 'coordinates': county.geometry.coordinates[0], 'name': county.properties.NAME, 'state': county.properties.STATE });
+        }
+    }
+
+    return county_borders_list;
+}
+
 export function buildStateBorders() {
     //creates a list of all borders provided (some states have multiple)
 
@@ -219,7 +239,7 @@ export function buildStateBorders() {
     const borders = [];
     states.features.forEach(state => {
         var bounds = new window.google.maps.LatLngBounds();
-        if (state.geometry.type == "MultiPolygon") {
+        if (state.geometry.type === "MultiPolygon") {
             state.geometry.coordinates.forEach(border => {
                 borders.push({ 'border': border[0], 'state': state.properties.NAME });
                 border[0].forEach(datapoint => {
@@ -234,11 +254,11 @@ export function buildStateBorders() {
                 bounds.extend(new window.google.maps.LatLng(datapoint[1], datapoint[0]));
             });
         }
-        boundsBoxes[state.properties.NAME] = bounds;
+
+        boundsBoxes[state.properties.NAME] = bounds.toJSON(); //[bounds.getNorthEast().toJSON(),bounds.getSouthWest().toJSON()];
     });
     return [borders, boundsBoxes];
 }
-
 
 //determines color/tint based on quartile of given state
 export function getFillColor(quartile, quartile_range, handleAsCounty) {
@@ -267,7 +287,7 @@ export function convertToLatLngArr(arr) {
 //receives which quarter of the data the value is in (ie fourth quartile ) and creates tint to match likelihood of data being present
 export function getTintValue(quartile, numQuartiles, originalValue) {
     var newTint = Math.round(originalValue + (255 - originalValue) * (1 - quartile / numQuartiles));
-    if (newTint == 256) newTint--;
+    if (newTint === 256) newTint--;
     return newTint.toString(16);
 }
 

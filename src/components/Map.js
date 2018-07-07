@@ -1,16 +1,20 @@
 import React, {
   Component
 } from 'react';
-import generateCountyBorders from '../components/CountyBorders';
 import stateCenters from '../csv/state_centers.json';
 import { Map, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
-import { buildStateBorders, Quartiles, getFillColor } from './StateBorders';
+import { buildStateBorders, generateCountyBorders, Quartiles, getFillColor, convertToLatLngArr } from './Borders';
 import { CountyElement } from './County';
-import { convertToLatLngArr } from './CountyBorders';
-import states from '../csv/states.json';
+
+import { store } from '../App';
 import data2018 from '../csv/data_2018.json';
 import State from './State'
+const initCenter = {
+  lat: 32.9582895,
+  lng: -117.1600157
+}, initialZoom = 4;
+
 class MapContainer extends Component {
   constructor(props) {
     super(props);
@@ -26,8 +30,11 @@ class MapContainer extends Component {
       state_borders_list: stateOutput[0],//this.props.callbackClickedState),
       stateQuartiles: new Quartiles(data2018, 4, true),
       county_borders_list: generateCountyBorders(),
-      boundsBoxes: stateOutput[1]
+      boundsBoxes: stateOutput[1],
+      infoWindowVisible: false
     };
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+
   }
 
   //sets Info Window properties of the state given
@@ -37,13 +44,33 @@ class MapContainer extends Component {
       this.setState({ infoWindowLat: latLng.lat });
       this.setState({ infoWindowLng: latLng.lng });
       this.setState({ state: state });
-
+      this.setState({ infoWindowVisible: true });
     }
 
   }
 
   handleSliderChange(value) {
     console.log(value);
+  }
+
+  onButtonClick() {
+    console.log('clicked');
+  }
+
+  handleKeyDown(e) {
+    const resetKey = "KeyR";
+    if (e.code === resetKey) {
+      console.log("reset screen");
+      this.refs.mapElement.map.setZoom(initialZoom);
+      this.refs.mapElement.map.setCenter(initCenter);
+      this.setState({ infoWindowVisible: false });
+      this.setState({ selectedState: "" })
+    }
+  }
+
+  componentWillMount() {
+
+    document.addEventListener("keydown", (e) => (this.handleKeyDown(e)));
   }
 
   render() {
@@ -69,23 +96,22 @@ class MapContainer extends Component {
             style={style}
             ref="mapElement"
             google={this.props.google}
-            initialCenter={{
-              lat: 32.9582895,
-              lng: -117.1600157
-            }}
+            initialCenter={initCenter}
             center={this.props.center}
             clickableIcons={true}
-            zoom={4}
+            zoom={initialZoom}
 
 
 
 
           >
 
-            <InfoWindow visible={true} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
+            <InfoWindow visible={this.state.infoWindowVisible} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
               <div>
               </div>
             </InfoWindow>
+
+
 
 
             {this.state.state_borders_list.map((border) =>
@@ -94,8 +120,12 @@ class MapContainer extends Component {
                 selectedState={window.selectedState}
                 ref={border.state}
                 onClick={(state) => {
+                  this.props.callbackClickedState(border.state);
+                  this.toggleInfoWindow(border.state);
+                  this.setState({ selectedState: border.state });
+
                   this.refs.mapElement.map.fitBounds(this.state.boundsBoxes[border.state]);
-                  this.refs.mapElement.map.panToBounds(this.state.boundsBoxes[border.state.toUpperCase]);
+                  this.refs.mapElement.map.panToBounds(this.state.boundsBoxes[border.state]);
                 }}
                 paths={convertToLatLngArr(border.border)}
                 strokeColor={"#000000"}
@@ -126,12 +156,17 @@ class MapContainer extends Component {
 
         </div>
         <div style={range}>
-          <CustomizedSlider onUpdate={(value) => (this.handleSliderChange(value))} />
         </div>
+
+
+
       </div>
+
     );
   }
 }
+
+
 
 export const GoogleMaps = GoogleApiWrapper({
   apiKey: 'AIzaSyDRxBYiF5OC6YDFwVpctIeFjtHg5C7VEKI',
