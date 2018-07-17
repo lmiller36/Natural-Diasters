@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import Slider, { Range, createSliderWithTooltip } from 'rc-slider';
 import stateCenters from '../csv/state_centers.json';
-import { Map, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
+import { Map, Marker, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
 import { Borders, Quartiles, getFillColor, convertToLatLngArr } from './Borders';
 import { CountyElement } from './County';
@@ -12,6 +12,15 @@ import Tooltip from 'rc-tooltip';
 import { store } from '../App';
 import data2018 from '../csv/data_2018.json';
 import State from './State'
+import PieChart from "react-svg-piechart"
+
+const data = [
+  { title: "Data 1", value: 100, color: "#FF00FF" },
+  { title: "Data 2", value: 60, color: "#820e91" },
+  { title: "Data 3", value: 30, color: "#91230d" },
+  { title: "Data 4", value: 20, color: "#177519" },
+  { title: "Data 5", value: 10, color: "#a1d9ce" },
+]
 const initCenter = {
   lat: 32.9582895,
   lng: -117.1600157
@@ -29,14 +38,17 @@ class MapContainer extends Component {
       infoWindowLng: -116,
       infoWindowVisible: false,
       selectedState: "",
-      stateQuartiles: new Quartiles(data2018, 4, true),
+      stateQuartiles: new Quartiles(4, true),
       boundsBoxes: BordersObj.boundsBoxes,
       state_borders_list: BordersObj.state_borders_list,
       county_borders_list: BordersObj.county_borders_list,
-      RGB: [0, 0, 255]
+      RGB: [0, 0, 255],
+      years: [2017, 2018],
+      visibleMarkers: null
 
     };
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.updateYears = this.updateYears.bind(this);
     console.log(this.state.stateQuartiles);
   }
 
@@ -52,6 +64,13 @@ class MapContainer extends Component {
 
   }
 
+  updateYears(values) {
+    console.log(this);
+    console.log(values);
+    this.setState({ years: values });
+    console.log(this)
+  }
+
   handleSliderChange(value) {
     console.log(value);
   }
@@ -64,6 +83,8 @@ class MapContainer extends Component {
       this.refs.mapElement.map.setCenter(initCenter);
       this.setState({ infoWindowVisible: false });
       this.setState({ selectedState: "" })
+      this.setState({ visibleMarkers: null });
+
     }
   }
 
@@ -72,7 +93,15 @@ class MapContainer extends Component {
     document.addEventListener("keydown", (e) => (this.handleKeyDown(e)));
   }
 
+  componentDidMount() {
 
+    // var legend = 
+    this.refs.mapElement.map.controls[this.props.google.maps.ControlPosition.RIGHT_BOTTOM].push(this.refs.legend);
+
+    this.props.google.maps.event.addListener(this.refs.InfoWindow, 'closeclick', function () {
+      console.log('closed')
+    });
+  }
 
   render() {
     const style = {
@@ -80,18 +109,43 @@ class MapContainer extends Component {
       height: '80%'
     }
 
+    var styleRect = {
+      fill: '#0000FF',
+      width: '100%',
+      height: '100%',
+    };
+
     const range = {
       width: '30%',
       height: '10%',
-      float: "right",
+      float: 'right'
     }
+
+    const pieChart = {
+      width: '75px',
+      height: '75px'
+    }
+
     const div = {
       visibility: "visible"
     }
 
+    // var squareSize = {
+    //   width: '30px',
+    //   height: '30px',
+    //    float: "right",
+    //   // marginRight: "30px"
+    // };
+
+    var legend = {
+      width: '125px',
+      height: '30px',
+      // float: "left",
+      // marginRight: "40px"
+    };
+
     const createSliderWithTooltip = Slider.createSliderWithTooltip;
     const Range = createSliderWithTooltip(Slider.Range);
-
 
     return (
       <div>
@@ -104,10 +158,11 @@ class MapContainer extends Component {
             center={this.props.center}
             clickableIcons={true}
             zoom={initialZoom}>
-
-            <InfoWindow visible={this.state.infoWindowVisible} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
+            <InfoWindow ref="InfoWindow" visible={this.state.infoWindowVisible} position={{ lat: this.state.infoWindowLat, lng: this.state.infoWindowLng }}>
               <div>
+                Between {this.state.years[0]} and {this.state.years[1]} there have been {this.state.stateQuartiles.distribution_state[this.state.selectedState.toUpperCase()]} storms in {this.state.selectedState}
               </div>
+
             </InfoWindow>
 
             {this.state.state_borders_list.map((border) =>
@@ -119,7 +174,9 @@ class MapContainer extends Component {
                   this.props.callbackClickedState(border.state);
                   this.toggleInfoWindow(border.state);
                   this.setState({ selectedState: border.state });
+                  this.setState({ visibleMarkers: null });
 
+                  // console.log(this.state.stateQuartiles.distribution_state[this.state.selectedState.toUpperCase()]);
                   this.refs.mapElement.map.fitBounds(this.state.boundsBoxes[border.state]);
                   this.refs.mapElement.map.panToBounds(this.state.boundsBoxes[border.state]);
                 }}
@@ -132,10 +189,22 @@ class MapContainer extends Component {
               />
               //getFillColor(this.state.stateQuartiles.quartiles_state[border.state.toUpperCase()], this.state.stateQuartiles.quartile_range, false, this.state.RGB)
             )}
+            {this.state.visibleMarkers && this.state.visibleMarkers.map((storm) => {
+              // console.log(storm);
+              return (<Marker position={{ lat: storm.BEGIN_LAT, lng: storm.BEGIN_LON }}
+                onClick={() => (console.log('woowee'))}></Marker>);
+            })}
             {this.state.county_borders_list.map((county) => {
               if (this.state.selectedState === county.state) {
                 return <CountyElement
                   paths={convertToLatLngArr(county.coordinates)}
+                  onClick={(state) => {
+                    // console.log(county.name.toUpperCase());
+                    // console.log(this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()])
+                    // console.log(this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()][county.name.toUpperCase()]);
+                    this.setState({ visibleMarkers: this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()][county.name.toUpperCase()] });
+                  }
+                  }
                   state={county.state}
                   strokeColor={"#000000"}
                   strokeOpacity={0.8}
@@ -152,30 +221,26 @@ class MapContainer extends Component {
 
         </div>
         <div style={range}>
-          <CustomizedSlider onUpdate={(value) => { this.setState({ RGB: value }) }} />
-          <br />
-          <br />
-          <Range count={2} defaultValue={[2017, 2018]} pushable={0} onAfterChange={() => (console.log('year chanage'))} min={1950} max={2018}
-            marks={{
+          <div >
+            <PieChart
+              viewBoxSize={20}
+              data={data}
+              // If you need expand on hover (or touch) effect
 
-              1950: '1950',
-              1975: '1975',
-              2000: '2000',
-              2018: '2018',
-
-            }}
-            tipFormatter={value => `${value}`}
-          // handleStyle={[{ backgroundColor: 'yellow' }, { backgroundColor: 'gray' }]}
-          // railStyle={{ backgroundColor: 'black' }}
-          />
+              // If you need custom behavior when sector is hovered (or touched)
+              expandOnHover={true}
+            />
 
 
+          </div>
 
         </div>
 
 
 
-      </div>
+
+
+      </div >
 
     );
   }

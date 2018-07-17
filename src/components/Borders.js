@@ -9,12 +9,12 @@ import keywordsToRemove from '../csv/keywordsToRemove';
 
 
 export class Quartiles {
-    constructor(DataSet, quartile_range, isState) {
-        this.DataSet = DataSet;
+    constructor(quartile_range, isState) {
+        // this.DataSet = DataSet;
         this.quartile_range = quartile_range;
         this.keywordsRemovedForEachState = {};
         this.countiesInStates = this.buildCountiesInState();
-        this.distribution_state = this.buildStateDist()
+        // this.distribution_state = this.buildStateDist()
         this.distribution_county = this.buildCountyDist();
         this.quartiles_state = this.mapStateDistToQuartileRanges();
         this.quartiles_county = this.mapCountyDistToQuartileRanges();
@@ -34,38 +34,84 @@ export class Quartiles {
 
     //ADD NUM StoRmS per STATE
     buildCountyDist() {
-        var missing = 0, found = 0;
+        var missing = [], found = 0;
 
 
         const distribution = {};
+        const dist_state = {}
+        const mappedKeywords = {};
         data2018.forEach(dataPoint => {
-            if (!distribution[dataPoint.STATE])
+            // if (dataPoint.STATE == "ALABAMA") console.log(dataPoint.CZ_NAME);
+            var name = dataPoint.CZ_NAME;
+            if (!distribution[dataPoint.STATE]) {
                 distribution[dataPoint.STATE] = {};
-            if (!distribution[dataPoint.STATE][dataPoint.CZ_NAME]) {
-                // if (this.countiesInStates[dataPoint.STATE]) {
-                //     if (this.countiesInStates[dataPoint.STATE][dataPoint.CZ_NAME]) {found++;}
-                //     else {
-                //         //console.log(dataPoint.STATE + " " + dataPoint.CZ_NAME);
-                //         missing++;
-                //     }
-                // }
-                distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+                missing[dataPoint.STATE] = [];
+                mappedKeywords[dataPoint.STATE] = {};
+                dist_state[dataPoint.STATE] = 0;
             }
-            distribution[dataPoint.STATE][dataPoint.CZ_NAME].push(dataPoint);
-        });
+            if (!distribution[dataPoint.STATE][dataPoint.CZ_NAME]) {
 
+                if (this.countiesInStates[dataPoint.STATE]) {
+
+                    if (dataPoint.CZ_NAME && dataPoint.STATE) {
+                        if (this.countiesInStates[dataPoint.STATE][dataPoint.CZ_NAME]) {
+                            distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+                        }
+                        else if (this.countiesInStates[dataPoint.STATE][mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME]]) {
+                            name = mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME];
+                        }
+                        else {
+                            var newCountyName = this.findMissingCounty(dataPoint.CZ_NAME, dataPoint.STATE)
+                            // if (dataPoint.STATE == "ALABAMA") console.log(":" + newCountyName + ": " + dataPoint.CZ_NAME);
+                            if (this.countiesInStates[dataPoint.STATE][newCountyName]) {
+                                name = newCountyName;
+                                distribution[dataPoint.STATE][newCountyName] = [];
+                                mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME] = newCountyName;
+                                // StormsInEachCounty[countyName][1] = StormsInEachCounty[countyName][1].concat(stateData[county]);
+
+                            }
+                            else {
+                                name = "MISSING"
+                                missing[dataPoint.STATE].push(dataPoint);
+                            }
+                        }
+                    }
+
+                    // else found++;
+                    // if (this.countiesInStates[dataPoint.STATE][dataPoint.CZ_NAME]) {found++;}
+                    // else {
+                    //     //console.log(dataPoint.STATE + " " + dataPoint.CZ_NAME);
+                    //     missing++;
+                    // }
+                }
+
+                //distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+            }
+            dist_state[dataPoint.STATE]++;
+            if (distribution[dataPoint.STATE][name])
+                distribution[dataPoint.STATE][name].push(dataPoint);
+        });
+        console.log(missing);
+        this.missing = missing;
+        //   console.log(missing + " " + found);
+        this.distribution_state = dist_state;
         return distribution;
     }
 
-    buildStateDist() {
-        var state_dist = {};
-        this.DataSet.forEach(dataPoint => {
-            if (state_dist[dataPoint.STATE] === null)
-                state_dist[dataPoint.STATE] = 0;
-            state_dist[dataPoint.STATE]++;
-        });
-        return state_dist;
-    }
+    // buildStateDist() {
+    //     var state_dist = {};
+    //     var stormTypes = {}
+    //     data2018.forEach(dataPoint => {
+    //         if (state_dist[dataPoint.STATE] == null)
+    //             state_dist[dataPoint.STATE] = 0;
+    //         if (!stormTypes[dataPoint.EVENT_TYPE]) stormTypes[dataPoint.EVENT_TYPE] = "present";
+    //         state_dist[dataPoint.STATE]++;
+    //     });
+
+    //     this.stormTypes = stormTypes;
+
+    //     return state_dist;
+    // }
 
     sortFunction(a, b) {
         var initialSort = a[1].length - b[1].length;
@@ -177,9 +223,11 @@ export class Quartiles {
                             missingStates[keysStates[i]].push(county);
                             return;
                         }
-                        // else
-                        //     console.log("FOUND " + newCountyName + " in " + keysStates[i]);
-                        countyName = newCountyName;
+                        else {
+                            // else
+                            // console.log("FOUND " + newCountyName + " in " + keysStates[i]);
+                            countyName = newCountyName;
+                        }
                     }
 
                     //repeat county name
@@ -213,7 +261,7 @@ export class Quartiles {
 
         this.missingCounties = missingStates;
         console.log(missingStates);
-        console.log(this.keywordsRemovedForEachState);
+        // console.log(this.keywordsRemovedForEachState);
         // console.log(JSON.stringify(this.keywordsRemovedForEachState));
         return countyQuartiles;
 
@@ -228,16 +276,22 @@ export class Quartiles {
         //['EASTERN', 'WESTERN', 'SOUTHERN', 'NORTHERN', 'NORTH', 'SOUTH', 'EAST', "WEST", 'NORTHWEST', "SOUTHEAST", "COASTAL", "COUNTY", "LOWER", "BASIN", "MOUNTAINS SOUTH OF I-80", "MOUNTAIN VALLEYS", "INLAND", "CENTRAL", "METRO AREA", "WINDWARD", "LEEWARD", "AREA", "GAP", "UPPER", "(BROOKLYN)", "(MANHATTAN)", "(STATEN IS.)", "MOUNTAINS"];
         wordsToSplitBy.forEach(word => {
             if (newCountyName.indexOf(word) != -1) {
-                this.keywordsRemovedForEachState[State][word] = CountyName;
+                // this.keywordsRemovedForEachState[State][word] = CountyName;
                 //CountyName = CountyName.split(word)[0];
                 // console.log(CountyName);
-                newCountyName = newCountyName.split(word)[1].trim();
-                //onsole.log(CountyName);
+                var split = newCountyName.split(word);
+                // if (State == "ALABAMA") console.log(split);
+                if (split[0]) {
+                    newCountyName = split[0].trim();
+                }
+                else if (split[1]) {
+                    newCountyName = split[1].trim();
+                }
 
                 if (this.countiesInStates[State][newCountyName]) {
 
                     //console.log("FOUND from keywords: " + State + " " + newCountyName);
-                    return;
+                    return newCountyName;
                 }
 
                 //     console.log(word+" "+CountyName+" "+State);
@@ -246,6 +300,10 @@ export class Quartiles {
         });
 
         //still not found
+        if (State.toUpperCase() == "ALABAMA") {
+            console.log(CountyName + " " + State + " " + newCountyName);
+            console.log(wordsToSplitBy);
+        }
         if (newCountyName == CountyName) {
             newCountyName = CountyName.replace(/\s/g, '');
             //console.log(newCountyName);
@@ -266,6 +324,7 @@ export class Quartiles {
             // });
             //console.log("NOT FOUND: " + State + " " + CountyName);
         }
+        // console.log(newCountyName);
         return newCountyName;
     }
 }
@@ -340,7 +399,9 @@ export function getFillColor(quartile, quartile_range, handleAsCounty, RGB) {
             quartile = 0;
     }
     //var quartile = quartiles[state.toUpperCase()];
-    return "#" + getTintValue(quartile, quartile_range, RGB[0]) + getTintValue(quartile, quartile_range, RGB[1]) + getTintValue(quartile, quartile_range, RGB[2]);
+    const color = "#" + getTintValue(quartile, quartile_range, RGB[0]) + getTintValue(quartile, quartile_range, RGB[1]) + getTintValue(quartile, quartile_range, RGB[2]);
+    // console.log(color);
+    return color;
 }
 
 //receives a list in the form [[-117,41],[-116,42]...] and converts to a list in the form [{lat:41 lng:41}...]
@@ -357,7 +418,7 @@ export function convertToLatLngArr(arr) {
 
 //receives which quarter of the data the value is in (ie fourth quartile ) and creates tint to match likelihood of data being present
 export function getTintValue(quartile, numQuartiles, originalValue) {
-    var newTint = Math.round(originalValue + (255 - originalValue) * (1 - quartile / numQuartiles));
+    var newTint = Math.round(originalValue + (255 - originalValue) * (1 - ((quartile + 1) / (numQuartiles + 1))));
     if (newTint === 256) newTint--;
     return newTint.toString(16);
 }
