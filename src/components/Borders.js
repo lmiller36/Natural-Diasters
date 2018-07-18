@@ -1,7 +1,9 @@
 import data2018 from '../csv/data_2018.json';
 import states from '../csv/states.json';
 import counties from '../csv/counties.json';
+import stormTypes from '../csv/categories.json'
 import keywordsToRemove from '../csv/keywordsToRemove';
+import QueriableRegions from './QueriableRegions.js';
 // var R = 160, G = 0, B = 255;
 
 
@@ -40,6 +42,13 @@ export class Quartiles {
         const distribution = {};
         const dist_state = {}
         const mappedKeywords = {};
+        const stormDistUSA = {};
+        // const typesOfStorms = {};
+        stormTypes.categories.forEach(stormType => {
+            stormDistUSA[stormType] = 0;
+        }
+        )
+        // console.log(Object.values(stormTypes));
         data2018.forEach(dataPoint => {
             // if (dataPoint.STATE == "ALABAMA") console.log(dataPoint.CZ_NAME);
             var name = dataPoint.CZ_NAME;
@@ -47,8 +56,10 @@ export class Quartiles {
                 distribution[dataPoint.STATE] = {};
                 missing[dataPoint.STATE] = [];
                 mappedKeywords[dataPoint.STATE] = {};
-                dist_state[dataPoint.STATE] = 0;
+                dist_state[dataPoint.STATE] = [];
             }
+
+            // if (!typesOfStorms[dataPoint.EVENT_TYPE]) typesOfStorms[dataPoint.EVENT_TYPE] = "sdsd";
             if (!distribution[dataPoint.STATE][dataPoint.CZ_NAME]) {
 
                 if (this.countiesInStates[dataPoint.STATE]) {
@@ -87,14 +98,19 @@ export class Quartiles {
 
                 //distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
             }
-            dist_state[dataPoint.STATE]++;
+            dist_state[dataPoint.STATE].push(dataPoint);
+            stormDistUSA[stormTypes.dictToCategories[dataPoint.EVENT_TYPE]]++;
             if (distribution[dataPoint.STATE][name])
                 distribution[dataPoint.STATE][name].push(dataPoint);
         });
-        console.log(missing);
+        // this.typesOfStorms = typesOfStorms;
         this.missing = missing;
+        // console.log(stormDistUSA);
         //   console.log(missing + " " + found);
         this.distribution_state = dist_state;
+        this.queriableRegion = new QueriableRegions();
+        this.queriableRegion.addRegion("USA", "2018", stormDistUSA,false);
+        this.dataLengths = { "2018": data2018.length };
         return distribution;
     }
 
@@ -260,7 +276,7 @@ export class Quartiles {
         }
 
         this.missingCounties = missingStates;
-        console.log(missingStates);
+        // console.log(missingStates);
         // console.log(this.keywordsRemovedForEachState);
         // console.log(JSON.stringify(this.keywordsRemovedForEachState));
         return countyQuartiles;
@@ -300,10 +316,7 @@ export class Quartiles {
         });
 
         //still not found
-        if (State.toUpperCase() == "ALABAMA") {
-            console.log(CountyName + " " + State + " " + newCountyName);
-            console.log(wordsToSplitBy);
-        }
+
         if (newCountyName == CountyName) {
             newCountyName = CountyName.replace(/\s/g, '');
             //console.log(newCountyName);

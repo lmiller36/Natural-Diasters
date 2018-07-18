@@ -1,4 +1,4 @@
-import { Polygon } from "google-maps-react/dist/components/Polygon";
+import { Polygon } from "google-maps-react";
 import { connect } from 'react-redux';
 
 class State extends Polygon {
