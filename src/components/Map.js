@@ -1,16 +1,13 @@
 import React, {
   Component
 } from 'react';
-import Slider, { Range, createSliderWithTooltip } from 'rc-slider';
+import Slider from 'rc-slider';
 import stateCenters from '../csv/state_centers.json';
 import { Map, Marker, GoogleApiWrapper, InfoWindow } from 'google-maps-react';
 import CustomizedSlider from './CustomizedSlider';
 import { Borders, Quartiles, getFillColor, convertToLatLngArr } from './Borders';
 import { CountyElement } from './County';
 import 'rc-tooltip/assets/bootstrap.css';
-import Tooltip from 'rc-tooltip';
-import { store } from '../App';
-import data2018 from '../csv/data_2018.json';
 import State from './State'
 import PieChart from "react-svg-piechart"
 
@@ -133,40 +130,14 @@ class MapContainer extends Component {
       height: '80%'
     }
 
-    var styleRect = {
-      fill: '#0000FF',
-      width: '100%',
-      height: '100%',
-    };
-
     const range = {
       width: '30%',
       height: '10%',
       float: 'right'
     }
-
-    const pieChart = {
-      width: '75px',
-      height: '75px'
-    }
-
     const div = {
       visibility: "visible"
     }
-
-    // var squareSize = {
-    //   width: '30px',
-    //   height: '30px',
-    //    float: "right",
-    //   // marginRight: "30px"
-    // };
-
-    var legend = {
-      width: '125px',
-      height: '30px',
-      // float: "left",
-      // marginRight: "40px"
-    };
 
     const createSliderWithTooltip = Slider.createSliderWithTooltip;
     const Range = createSliderWithTooltip(Slider.Range);
@@ -217,10 +188,8 @@ class MapContainer extends Component {
                 fillColor={getFillColor(this.state.stateQuartiles.quartiles_state[border.state.toUpperCase()], this.state.stateQuartiles.quartile_range, false, this.state.RGB)}
                 fillOpacity={0.35}
               />
-              //getFillColor(this.state.stateQuartiles.quartiles_state[border.state.toUpperCase()], this.state.stateQuartiles.quartile_range, false, this.state.RGB)
             )}
             {this.state.visibleMarkers && this.state.visibleMarkers.map((storm) => {
-              // console.log(storm);
               return (<Marker position={{ lat: storm.BEGIN_LAT, lng: storm.BEGIN_LON }}
                 onClick={() => (console.log('woowee'))}></Marker>);
             })}
@@ -229,12 +198,8 @@ class MapContainer extends Component {
                 return <CountyElement
                   paths={convertToLatLngArr(county.coordinates)}
                   onClick={(state) => {
-                    // console.log(county.name.toUpperCase());
-                    // console.log(this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()])
-                    // console.log(this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()][county.name.toUpperCase()]);
-                    this.setState({ visibleMarkers: this.state.stateQuartiles.distribution_county[(state.state).toUpperCase()][county.name.toUpperCase()] });
-                  }
-                  }
+                    this.setState({ visibleMarkers: this.state.stateQuartiles.stormsInEachCounty[(state.state).toUpperCase()][county.name.toUpperCase()] });
+                  }}
                   state={county.state}
                   strokeColor={"#000000"}
                   strokeOpacity={0.8}
@@ -262,20 +227,8 @@ class MapContainer extends Component {
                   <img src={this.getImage(stormType.title)} width='29px' height='30px' float="right" border="1" style={{ marginLeft: "4px" }} />
                 </div>
                 );
+              else return null;
             })}
-            {/* <div style={{ width: '75px', height: '120px', border: '1px solid #000000', background: "#FFFFFF", float: "right", cursor: "pointer" }}>
-            <div style={{ width: '65px', height: '30px', float: "left", marginTop: "2px" }}>
-              <svg style={{ fill: '#3333ff', width: '30px', height: '100%' }}>
-                <rect style={{ fill: '#3333ff', width: '30px', height: '100%', }} />
-              </svg>
-              <img src="https://png.icons8.com/wired/2x/snow-storm.png" width='29px' height='30px' float="right" border="1" style={{marginLeft: "7px"}} />
-            </div>
-            <div style={{ width: '65px', height: '30px', float: "left", marginTop: "4px" }}>
-              <svg style={{ fill: '#3333ff', width: '30px', height: '100%' }}>
-                <rect style={{ fill: '#3333ff', width: '30px', height: '100%', }} />
-              </svg>
-              <img src="https://png.icons8.com/wired/2x/snow-storm.png" width='29px' height='30px' float="right" border="1" />
-            </div> */}
           </div>
 
           <div style={{ float: "top" }}>
@@ -293,8 +246,8 @@ class MapContainer extends Component {
 
 
 
-          <div style={{  marginTop: "400px" }}>
-            <CustomizedSlider onUpdate={(value) => { this.setState({ RGB: value }) }} />
+          <div style={{ marginTop: "400px" }}>
+            {/* <CustomizedSlider onUpdate={(value) => { this.setState({ RGB: value }) }} /> */}
             <br />
             <br />
             <Range ref="yearRange" count={2} defaultValue={[2017, 2018]} pushable={0} onUpdate={(value) => { this.setState({ years: value }) }} onAfterChange={() => (console.log('finito'))} min={1950} max={2018}
@@ -307,15 +260,9 @@ class MapContainer extends Component {
 
               }}
               tipFormatter={value => `${value}`}
-            // handleStyle={[{ backgroundColor: 'yellow' }, { backgroundColor: 'gray' }]}
-            // railStyle={{ backgroundColor: 'black' }}
+
             />
           </div>
-
-
-
-          {/* <div style={{ textAlign: 'left', marginLeft: '15px' }}>
-              2 storms*/}
         </div>
         <div ref="legend" style={{ width: '120px', height: '60px', border: '1px solid #000000', background: "#FFFFFF", float: "left", cursor: "pointer" }}>
           <div style={{ float: "center", textAlign: 'center' }}>

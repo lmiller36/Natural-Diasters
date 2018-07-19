@@ -10,19 +10,30 @@ import QueriableRegions from './QueriableRegions.js';
 //NOTE THAT SOME COUNTY NAMES ARE NOT FOUND SO POINT NOT INCLUDED IN COUNTY COLORS, BUT PRESENT IN STATE CALC
 
 
+/**
+ * This class creates several different objects that are used in the main application
+ */
 export class Quartiles {
     constructor(quartile_range, isState) {
-        // this.DataSet = DataSet;
         this.quartile_range = quartile_range;
         this.keywordsRemovedForEachState = {};
         this.countiesInStates = this.buildCountiesInState();
-        // this.distribution_state = this.buildStateDist()
-        this.distribution_county = this.buildCountyDist();
+        this.stormsInEachCounty = this.buildStormsInEachCounty();
         this.quartiles_state = this.mapStateDistToQuartileRanges();
-        this.quartiles_county = this.mapCountyDistToQuartileRanges();
+        this.quartiles_county = this.createCountyDistributions();
 
         //create dict in form {Texas:25 Alaska:12 ...}
     }
+
+
+    /**
+     * Creates a dictionary with the counties found in each each
+     * {
+     *      California: {  Marin: here ...   }
+     *      Illinois:   {  Cook: here  ...   }
+     *      ...
+     * }
+     */
     buildCountiesInState() {
         const countiesDict = {}
         counties.features.forEach(county => {
@@ -35,99 +46,80 @@ export class Quartiles {
     }
 
     //ADD NUM StoRmS per STATE
-    buildCountyDist() {
-        var missing = [], found = 0;
+    buildStormsInEachCounty() {
+        var missing = [];
+        const distribution = {}, distributionOfStormsInEachState = {}, mappedKeywords = {}, stormDistUSA = {};
 
-
-        const distribution = {};
-        const dist_state = {}
-        const mappedKeywords = {};
-        const stormDistUSA = {};
-        // const typesOfStorms = {};
+        //makes dictionary with keys reflecting the types of storms with a count value
+        //{"Winter": 10 Thunderstorms:7 ...}
         stormTypes.categories.forEach(stormType => {
             stormDistUSA[stormType] = 0;
-        }
-        )
-        // console.log(Object.values(stormTypes));
-        data2018.forEach(dataPoint => {
-            // if (dataPoint.STATE == "ALABAMA") console.log(dataPoint.CZ_NAME);
-            var name = dataPoint.CZ_NAME;
-            if (!distribution[dataPoint.STATE]) {
-                distribution[dataPoint.STATE] = {};
-                missing[dataPoint.STATE] = [];
-                mappedKeywords[dataPoint.STATE] = {};
-                dist_state[dataPoint.STATE] = [];
+        });
+
+        //Iterates through all datapoints
+        data2018.forEach(datapoint => {
+            var name = datapoint.CZ_NAME;
+
+            //checks if the datapoint's state already exists in the distribution dictionary
+            if (!distribution[datapoint.STATE]) {
+                distribution[datapoint.STATE] = {};
+                missing[datapoint.STATE] = [];
+                mappedKeywords[datapoint.STATE] = {};
+                distributionOfStormsInEachState[datapoint.STATE] = [];
             }
 
-            // if (!typesOfStorms[dataPoint.EVENT_TYPE]) typesOfStorms[dataPoint.EVENT_TYPE] = "sdsd";
-            if (!distribution[dataPoint.STATE][dataPoint.CZ_NAME]) {
+            //checks if the datapoint's county already exists in the datapoint's state dictionary entry of the distribution dictionary
+            if (!distribution[datapoint.STATE][datapoint.CZ_NAME]) {
 
-                if (this.countiesInStates[dataPoint.STATE]) {
+                //checks if the datapoint's state is found in the list of known state names
+                if (this.countiesInStates[datapoint.STATE]) {
 
-                    if (dataPoint.CZ_NAME && dataPoint.STATE) {
-                        if (this.countiesInStates[dataPoint.STATE][dataPoint.CZ_NAME]) {
-                            distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+                    if (datapoint.CZ_NAME && datapoint.STATE) {
+                        //County name is already known
+                        if (this.countiesInStates[datapoint.STATE][datapoint.CZ_NAME]) {
+                            distribution[datapoint.STATE][datapoint.CZ_NAME] = [];
                         }
-                        else if (this.countiesInStates[dataPoint.STATE][mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME]]) {
-                            name = mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME];
+                        //County name is not known (ex: northern Cook county) but was found by parsing (removed northern and county, leaving only Cook)
+                        else if (this.countiesInStates[datapoint.STATE][mappedKeywords[datapoint.STATE][datapoint.CZ_NAME]]) {
+                            name = mappedKeywords[datapoint.STATE][datapoint.CZ_NAME];
                         }
+                        //County name is not known and has not yet been parsed, so try parsing it to find its actual county name
                         else {
-                            var newCountyName = this.findMissingCounty(dataPoint.CZ_NAME, dataPoint.STATE)
-                            // if (dataPoint.STATE == "ALABAMA") console.log(":" + newCountyName + ": " + dataPoint.CZ_NAME);
-                            if (this.countiesInStates[dataPoint.STATE][newCountyName]) {
+                            var newCountyName = this.findMissingCounty(datapoint.CZ_NAME, datapoint.STATE)
+                            //found actual county name by parsing
+                            if (this.countiesInStates[datapoint.STATE][newCountyName]) {
                                 name = newCountyName;
-                                distribution[dataPoint.STATE][newCountyName] = [];
-                                mappedKeywords[dataPoint.STATE][dataPoint.CZ_NAME] = newCountyName;
-                                // StormsInEachCounty[countyName][1] = StormsInEachCounty[countyName][1].concat(stateData[county]);
+                                distribution[datapoint.STATE][newCountyName] = [];
+                                mappedKeywords[datapoint.STATE][datapoint.CZ_NAME] = newCountyName;
 
                             }
+                            //datapoint's county name was not found so add it to a list for later reference
                             else {
                                 name = "MISSING"
-                                missing[dataPoint.STATE].push(dataPoint);
+                                missing[datapoint.STATE].push(datapoint);
                             }
                         }
                     }
 
-                    // else found++;
-                    // if (this.countiesInStates[dataPoint.STATE][dataPoint.CZ_NAME]) {found++;}
-                    // else {
-                    //     //console.log(dataPoint.STATE + " " + dataPoint.CZ_NAME);
-                    //     missing++;
-                    // }
                 }
 
-                //distribution[dataPoint.STATE][dataPoint.CZ_NAME] = [];
+
             }
-            dist_state[dataPoint.STATE].push(dataPoint);
-            stormDistUSA[stormTypes.dictToCategories[dataPoint.EVENT_TYPE]]++;
-            if (distribution[dataPoint.STATE][name])
-                distribution[dataPoint.STATE][name].push(dataPoint);
+
+            distributionOfStormsInEachState[datapoint.STATE].push(datapoint);
+            stormDistUSA[stormTypes.dictToCategories[datapoint.EVENT_TYPE]]++;
+            if (distribution[datapoint.STATE][name])
+                distribution[datapoint.STATE][name].push(datapoint);
         });
-        // this.typesOfStorms = typesOfStorms;
         this.missing = missing;
-        // console.log(stormDistUSA);
-        //   console.log(missing + " " + found);
-        this.distribution_state = dist_state;
+
+        this.distribution_state = distributionOfStormsInEachState;
+        //add information for the US data to Queriable regions
         this.queriableRegion = new QueriableRegions();
-        this.queriableRegion.addRegion("USA", "2018", stormDistUSA,false);
+        this.queriableRegion.addRegion("USA", "2018", stormDistUSA, false);
         this.dataLengths = { "2018": data2018.length };
         return distribution;
     }
-
-    // buildStateDist() {
-    //     var state_dist = {};
-    //     var stormTypes = {}
-    //     data2018.forEach(dataPoint => {
-    //         if (state_dist[dataPoint.STATE] == null)
-    //             state_dist[dataPoint.STATE] = 0;
-    //         if (!stormTypes[dataPoint.EVENT_TYPE]) stormTypes[dataPoint.EVENT_TYPE] = "present";
-    //         state_dist[dataPoint.STATE]++;
-    //     });
-
-    //     this.stormTypes = stormTypes;
-
-    //     return state_dist;
-    // }
 
     sortFunction(a, b) {
         var initialSort = a[1].length - b[1].length;
@@ -135,6 +127,10 @@ export class Quartiles {
         return a[0].localeCompare(b[0]);
     }
 
+   /**
+    * Creates quartiles for states
+    * {Texas:1 California:2 Alaska:2 ... }
+    */
     mapStateDistToQuartileRanges() {
         //create sorted list in form [[1,California],[3,Washington]...]
         var keys = Object.keys(this.distribution_state);
@@ -147,7 +143,6 @@ export class Quartiles {
         //creates dictionary in form {Texas:1 California:2 Alaska:2}
         var quartileDict = {};
         var curr = 0;
-        var quartile_range = 10;
         var quartile = Math.trunc(StormsInEachCounty.length / this.quartile_range);
         var currQuartile = 0;
         while (curr < StormsInEachCounty.length) {
@@ -171,11 +166,9 @@ export class Quartiles {
 
     }
 
-    mapStateDistToQuartileRangesTEST(stormsInEachCounty) {
+    CreateCountyDistributionForState(stormsInEachCounty) {
         //create sorted list in form [[1,California],[3,Washington]...]
-        var keys = Object.keys(stormsInEachCounty);
         stormsInEachCounty.sort((a, b) => { return this.sortFunction(a, b) });
-        // console.log(stormsInEachCounty);
 
         //Maps distribution of storms to quartiles(ranges of values) with each state's quartile being its value
         //creates dictionary in form {Texas:1 California:2 Alaska:2}
@@ -183,7 +176,7 @@ export class Quartiles {
         var curr = 0;
         var quartile = Math.trunc(stormsInEachCounty.length / this.quartile_range);
         var currQuartile = 0;
-        if (quartile === 0) {
+        if (quartile == 0) {
             while (curr < stormsInEachCounty.length) {
                 quartileDict[stormsInEachCounty[curr][0]] = [currQuartile, stormsInEachCounty[curr][1]];
                 currQuartile++;
@@ -209,76 +202,33 @@ export class Quartiles {
                 }
 
             }
-        // console.log(quartileDict);
         return quartileDict;
 
     }
 
-    mapCountyDistToQuartileRanges() {
+    createCountyDistributions() {
+
         //create sorted list in form [[1,California],[3,Washington]...]
-        var keysStates = Object.keys(this.distribution_county);
-        // console.log(keysStates);
-        var missingStates = {};
+        var keysStates = Object.keys(this.stormsInEachCounty);
         var countyQuartiles = {};
-        //        for (var i = 0; i < keysStates.length; i++) {
 
-        for (var i = 0; i < keysStates.length; i++) {
-            this.keywordsRemovedForEachState[keysStates[i]] = {};
-            if (this.countiesInStates[keysStates[i]]) {
-
-                var stateData = this.distribution_county[keysStates[i]];
+        keysStates.map(state => {
+            this.keywordsRemovedForEachState[state] = {};
+            if (this.countiesInStates[state]) {
+                var stateData = this.stormsInEachCounty[state];
                 var StormsInEachCounty = [];
                 var keysCounties = Object.keys(stateData);
-                missingStates[keysStates[i]] = [];
                 keysCounties.forEach((county) => {
                     var countyName = county;
-                    // StormsInEachCounty[county] = [county, stateData[county]];
-                    if (!this.countiesInStates[keysStates[i]][county]) {
-                        var newCountyName = this.findMissingCounty(county, keysStates[i]);
-                        if (!this.countiesInStates[keysStates[i]][newCountyName]) {
-                            missingStates[keysStates[i]].push(county);
-                            return;
-                        }
-                        else {
-                            // else
-                            // console.log("FOUND " + newCountyName + " in " + keysStates[i]);
-                            countyName = newCountyName;
-                        }
-                    }
-
-                    //repeat county name
-                    if (StormsInEachCounty[countyName]) {
-                        // console.log('before');
-                        StormsInEachCounty[countyName][1] = StormsInEachCounty[countyName][1].concat(stateData[county]);
-                        // console.log(stateData[county]);
-                        // console.log(StormsInEachCounty[countyName]);
-                    }
-                    else
+                    if (this.countiesInStates[state][county])
                         StormsInEachCounty[countyName] = [countyName, stateData[county]]
-
-                    // else {
-                    //     var newCountyName = this.findMissingCounty(county, keysStates[i]);
-                    //     if (StormsInEachCounty[newCountyName]) console.log(newCountyName + " has already been used");
-                    //     // if (this.countiesInStates[keysStates[i]][newCountyName]) {
-
-                    //     //     StormsInEachCounty.push([county, stateData[newCountyName]]);
-                    //     //     console.log(newCountyName + " has been appended");
-                    //     // }
-                    //     // else
-                    //     //     //FIX SO THESE ARE ADDED AND THE WORK IS NOT REDONE
-                    //     //     missingStates[keysStates[i]].push(county);
-                    // }
                 });
-                // console.log(keysStates[i]);
-                // console.log(StormsInEachCounty);
-                countyQuartiles[keysStates[i]] = this.mapStateDistToQuartileRangesTEST(Object.values(StormsInEachCounty));
-            }
-        }
 
-        this.missingCounties = missingStates;
-        // console.log(missingStates);
-        // console.log(this.keywordsRemovedForEachState);
-        // console.log(JSON.stringify(this.keywordsRemovedForEachState));
+                countyQuartiles[state] = this.CreateCountyDistributionForState(Object.values(StormsInEachCounty));
+            }
+        });
+
+
         return countyQuartiles;
 
     }
@@ -289,14 +239,10 @@ export class Quartiles {
     findMissingCounty(CountyName, State) {
         var newCountyName = CountyName;
         var wordsToSplitBy = Object.keys(keywordsToRemove[State]);
-        //['EASTERN', 'WESTERN', 'SOUTHERN', 'NORTHERN', 'NORTH', 'SOUTH', 'EAST', "WEST", 'NORTHWEST', "SOUTHEAST", "COASTAL", "COUNTY", "LOWER", "BASIN", "MOUNTAINS SOUTH OF I-80", "MOUNTAIN VALLEYS", "INLAND", "CENTRAL", "METRO AREA", "WINDWARD", "LEEWARD", "AREA", "GAP", "UPPER", "(BROOKLYN)", "(MANHATTAN)", "(STATEN IS.)", "MOUNTAINS"];
         wordsToSplitBy.forEach(word => {
             if (newCountyName.indexOf(word) != -1) {
-                // this.keywordsRemovedForEachState[State][word] = CountyName;
-                //CountyName = CountyName.split(word)[0];
-                // console.log(CountyName);
+
                 var split = newCountyName.split(word);
-                // if (State == "ALABAMA") console.log(split);
                 if (split[0]) {
                     newCountyName = split[0].trim();
                 }
@@ -304,42 +250,25 @@ export class Quartiles {
                     newCountyName = split[1].trim();
                 }
 
+                //a split word is 
                 if (this.countiesInStates[State][newCountyName]) {
-
-                    //console.log("FOUND from keywords: " + State + " " + newCountyName);
                     return newCountyName;
                 }
-
-                //     console.log(word+" "+CountyName+" "+State);
-                //    console.log(this.countiesInStates[State]);
             }
         });
 
         //still not found
-
         if (newCountyName == CountyName) {
             newCountyName = CountyName.replace(/\s/g, '');
-            //console.log(newCountyName);
             if (this.countiesInStates[State][newCountyName])
                 return newCountyName;
             else
                 return null;
-            // var split = newCountyName.split(" ");
-            // split.forEach(word => {
 
-            //     if (this.countiesInStates[State][word]) {
-            //         // for (var i = 0; i < split.length; i++)
-            //         //     if (split[i] != word) this.keywordsRemovedForEachState[State][split[i]] = CountyName;
-
-            //         console.log(word + " in " + CountyName + ", " + State);
-            //         return;
-            //     }
-            // });
-            //console.log("NOT FOUND: " + State + " " + CountyName);
         }
-        // console.log(newCountyName);
         return newCountyName;
     }
+
 }
 
 
@@ -350,8 +279,8 @@ export class Borders {
         this.generateStateBorders();
     }
 
+    //creates a list of all borders to be rendered
     generateCountyBorders() {
-
         var county_borders_list = [];
         for (var i = 0; i < counties.features.length; i++) {
 
@@ -411,9 +340,7 @@ export function getFillColor(quartile, quartile_range, handleAsCounty, RGB) {
         else
             quartile = 0;
     }
-    //var quartile = quartiles[state.toUpperCase()];
     const color = "#" + getTintValue(quartile, quartile_range, RGB[0]) + getTintValue(quartile, quartile_range, RGB[1]) + getTintValue(quartile, quartile_range, RGB[2]);
-    // console.log(color);
     return color;
 }
 

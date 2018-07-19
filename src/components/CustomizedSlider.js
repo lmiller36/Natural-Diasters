@@ -1,4 +1,4 @@
-import Slider, { Range } from 'rc-slider';
+import Range from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import React, {
     Component

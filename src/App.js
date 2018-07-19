@@ -11,10 +11,6 @@ export const store = configureAndResetStore();
 
 class Main extends Component {
 
-  constructor(props) {
-    super(props);
-  }
-
   callbackClickedState(state) {
     store.dispatch({
       type: 'UPDATE_SELECTED_STATE',
